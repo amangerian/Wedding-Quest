@@ -23,6 +23,12 @@ The cats are small, so they fit through pet doors and tiny tunnels. Later abilit
 open up places you passed earlier: the lake trail at College Park needs Mikey and BA,
 and the binoculars there unlock the birding trail.
 
+**Two character styles.** *Characters: Pixel* (the default, retro pixel art) or *Characters:
+Cartoon* (smooth chibi art drawn at full screen resolution). Switch on the title screen or in
+the pause menu; each device remembers its choice. On the birding trail and in the ending,
+everyone changes into wedding clothes: a tux for Alex, a gown and veil for Katherine, a bow tie
+for BA and a flower collar for Mikey.
+
 ## Controls
 
 - **Keyboard:** arrows / WASD to move, Space / Z / ↑ to jump, X / Shift for the power,
@@ -52,5 +58,6 @@ on the title screen tells you which build you're looking at.
 - **Bird facts:** the `BIRDS` list.
 - **Level layouts:** the `ZONES` maps. Each character is one 16-pixel tile, and the key
   is in the comment just above `const ZONES`.
-- **Character art:** `HUMANS` (Alex, Katherine) and `CATS` (BA, Mikey). Pixel rows and
-  colour palettes are drawn from our photos.
+- **Character art:** `HUMANS` (Alex, Katherine, plus the `alexW` / `katherineW` wedding
+  versions) and `CATS` (BA, Mikey) for the pixel style. `TOON` holds the cartoon-style colours,
+  including Katherine's bronde hair (`hair`, `hairHi`, `hairD`).

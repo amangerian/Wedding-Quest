@@ -105,7 +105,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
     <span class="ar" style="left:66px;top:10px">▲</span><span class="ar" style="left:66px;bottom:10px">▼</span>
     <div class="knob"></div></div>
   <div id="btns">
-    <div class="tb" id="bSwap" data-b="swap"><canvas width="20" height="20"></canvas></div>
+    <div class="tb" id="bSwap" data-b="swap"><canvas width="60" height="60"></canvas></div>
     <div class="tb" id="bAbil" data-b="abil"><span class="ic">✦</span><span id="abilLbl">Power</span></div>
     <div class="tb" id="bJump" data-b="jump"><span class="ic">⤒</span>Jump</div>
   </div>
@@ -122,11 +122,12 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
       <button class="mb" id="btnNew">New Game</button>
       <button class="mb" id="btnHow">How to Play</button>
       <button class="mb" id="btnSound">Sound: On</button>
+      <button class="mb" id="btnStyle">Characters: Pixel</button>
     </div>
     <div class="verstamp">
-      Last updated: <b id="lastUpdated">October 11, 2026</b>
+      Last updated: <b id="lastUpdated">October 12, 2026</b>
       <span class="vsep">·</span>
-      <span id="verNote">First build — three phases, four heroes</span>
+      <span id="verNote">Cartoon character option, bronde hair, wedding outfits in Phase III</span>
     </div>
   </div>
 </div>
@@ -148,7 +149,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
       <b>BA</b> — knock things off ledges. They make great steps, and heavy things press switches.<br>
       <b>Mikey</b> — butt bump cracked rock: dash on the ground, slam down from the air.<br>
       Cats are small and fit through tiny gaps and pet doors.</p>
-      <p>Game controllers work too.</p>
+      <p>Prefer smoother characters? Switch <b>Characters</b> between Pixel and Cartoon in the menu. Game controllers work too.</p>
     </div>
     <div class="menu" style="margin-top:12px"><button class="mb primary" id="btnHowBack">Got it</button></div>
   </div>
@@ -163,6 +164,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
       <button class="mb" id="btnMapP">Map</button>
       <button class="mb" id="btnReset">Reset boxes in this area</button>
       <button class="mb" id="btnSound2">Sound: On</button>
+      <button class="mb" id="btnStyle2">Characters: Pixel</button>
       <button class="mb" id="btnHow2">How to Play</button>
       <button class="mb" id="btnQuit">Save &amp; Quit to Title</button>
     </div>
@@ -209,7 +211,7 @@ function loadJSON(key, fb) {
   catch (e) { console.warn('stored state unreadable, starting fresh', e); return Object.assign({}, fb); }
 }
 function saveJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { console.warn('could not save', e); } }
-const settings = loadJSON(SETTINGS_KEY, { sound: true });
+const settings = loadJSON(SETTINGS_KEY, { sound: true, style: 'pixel' });
 
 /* =========================================================================
    INPUT — keyboard, touch, gamepad → logical buttons
@@ -498,7 +500,7 @@ const HUMANS = {
     ]
   },
   katherine: {
-    pal: { h: '#c47544', H: '#e8a56d', d: '#9a5530', s: '#f8d5bd', S: '#e3ac90', e: '#4a3a30', m: '#c9606a', r: '#f2a7a2',
+    pal: { h: '#a98058', H: '#d3ae7c', d: '#7d5a38', s: '#f8d5bd', S: '#e3ac90', e: '#4a3a30', m: '#c9606a', r: '#f2a7a2',
            q: '#2b2522', Q: '#7a665c', w: '#f7f4ee', W: '#d8d1c3', i: '#ffffff', b: '#1c1c20' },
     sleeve: '#f7f4ee', sleeveD: '#d8d1c3', skin: '#f8d5bd', skinD: '#e3ac90',
     pants: '#867476', pantsD: '#6b5c5e', shoe: '#1c1c20', sole: '#4a4a50', legW: 4, flare: 1,
@@ -528,6 +530,41 @@ const HUMANS = {
     ]
   }
 };
+// Phase III: the wedding outfits (same faces, new clothes)
+HUMANS.alexW = Object.assign({}, HUMANS.alex, {
+  pal: Object.assign({}, HUMANS.alex.pal, { j: '#17171d', J: '#2e2e38', x: '#f7f7f7', k: '#0a0a0c', o: '#44444e', f: '#ffffff' }),
+  sleeve: '#17171d', sleeveD: '#0e0e12', pants: '#1d1d23', pantsD: '#141418', shoe: '#0b0b0d', sole: '#2a2a30',
+  rows: HUMANS.alex.rows.slice(0, 14).concat([
+    '....jjxxxxjj....',
+    '....jJkkkkJj....',
+    '....jjJxxJfj....',
+    '....jjjJJjjj....',
+    '....jjjjojjj....',
+    '....jjjjjjjj....',
+    '....jjjjojjj....',
+    '....jjjjjjjj....'])
+});
+HUMANS.katherineW = Object.assign({}, HUMANS.katherine, {
+  pal: Object.assign({}, HUMANS.katherine.pal, { w: '#fdfcf9', W: '#e6e0d4', y: '#e8d9ae', o: '#fffaf0' }),
+  sleeve: '#f8d5bd', sleeveD: '#e3ac90', dress: true, veil: true,
+  rows: ['....hhhhhh......', '...hhohohohh....'].concat(HUMANS.katherine.rows.slice(2, 14), [
+    '.ddhssssssss....',
+    '.dd.wwsssww.....',
+    '.dd.wwwwwwww....',
+    '..d.wWwwwwWw....',
+    '....wWwwwwWw....',
+    '....yyyyyyyy....',
+    '....wwwwwwww....',
+    '...wwwwwwwwww...'])
+});
+function drawDress(c2, frame, air) {              // a full skirt that sways when she runs
+  const sway = air ? 0 : [0, 1, 0, -1, 0][frame] || 0;
+  for (let r = 0; r < 10; r++) {
+    const hw = 5 + r * 0.3, sw = r >= 5 ? sway : 0, x = Math.round(8 - hw + sw), w = Math.round(hw * 2);
+    px(c2, x, 22 + r, w, 1, r === 9 ? '#e6e0d4' : '#fdfcf9');
+    if (r > 2 && r < 9) { px(c2, x + 2, 22 + r, 1, 1, '#ece7dd'); px(c2, x + w - 3, 22 + r, 1, 1, '#ece7dd'); }
+  }
+}
 // arm: shoulder point + pose → pixels
 function drawArm(c2, def, sx, sy, pose, swing, front) {
   const sl = front ? def.sleeve : def.sleeveD, sk = front ? def.skin : def.skinD;
@@ -555,19 +592,24 @@ function drawLegs(c2, def, frame, air) {
   }
 }
 const humanCache = {};
-function humanFrame(who, pose, frame) {
-  const key = who + pose + frame;
+function humanFrame(who, pose, frame, wed) {
+  const key = who + pose + frame + (wed ? 'W' : '');
   if (humanCache[key]) return humanCache[key];
-  const def = HUMANS[who], c = newCanvas(16, 32), c2 = c.getContext('2d');
+  const def = HUMANS[who + (wed ? 'W' : '')], c = newCanvas(16, 32), c2 = c.getContext('2d');
+  if (def.veil) { px(c2, 0, 3, 3, 21, 'rgba(255,255,255,.6)'); px(c2, 1, 24, 3, 5, 'rgba(255,255,255,.45)'); }
   const air = pose === 'jump' || pose === 'fall' || pose === 'swing';
   const swing = pose === 'run' ? [0, 1.4, 0.7, -1.4, -0.7][frame] : 0;
   const armBack = pose === 'swing' ? 'up' : pose === 'abil' && who === 'katherine' ? 'type' : 'down';
   const armFront = pose === 'swing' ? 'up' : pose === 'abil' ? (who === 'katherine' ? 'type' : 'fwd') : pose === 'jump' ? 'up' : 'down';
   drawArm(c2, def, 3, 15, armBack, -swing, false);
-  drawLegs(c2, def, pose === 'run' ? frame : 0, air);
+  if (def.dress) drawDress(c2, pose === 'run' ? frame : 0, air); else drawLegs(c2, def, pose === 'run' ? frame : 0, air);
   paint(c2, def.rows, def.pal, 0, (pose === 'idle' && frame === 1) ? 1 : 0);
-  if (pose === 'idle' && frame === 1) px(c2, 4, 22, 8, 1, def.pants);
+  if (pose === 'idle' && frame === 1) px(c2, 4, 22, 8, 1, def.dress ? '#fdfcf9' : def.pants);
   drawArm(c2, def, 11, 15, armFront, swing, true);
+  if (def.dress && pose !== 'abil' && pose !== 'swing') {   // the bouquet
+    px(c2, 9, 20, 4, 1, '#6a9a5a'); px(c2, 8, 19, 1, 1, '#6a9a5a');
+    [[9, 18, '#f4b6c2'], [10, 18, '#ffffff'], [11, 18, '#f4b6c2'], [9, 19, '#ffffff'], [10, 19, '#f7d7a8'], [11, 19, '#ffffff'], [12, 19, '#f4b6c2'], [10, 17, '#ffffff']].forEach(([x, y, col]) => px(c2, x, y, 1, 1, col));
+  }
   if (pose === 'abil' && who === 'katherine') {           // the laptop
     px(c2, 9, 16, 7, 1, '#9aa3ad'); px(c2, 10, 13, 5, 3, '#2d3540'); px(c2, 11, 14, 3, 1, '#62f08a');
     px(c2, 9, 17, 7, 1, '#cfd6de');
@@ -596,8 +638,8 @@ const CAT_ROWS = [
   '..kkkbbbbkkkwwk.....'
 ];
 const catCache = {};
-function catFrame(who, pose, frame) {
-  const key = who + pose + frame;
+function catFrame(who, pose, frame, wed) {
+  const key = who + pose + frame + (wed ? 'W' : '');
   if (catCache[key]) return catCache[key];
   const P = CATS[who], c = newCanvas(20, 14), c2 = c.getContext('2d');
   const pal = { k: P.k, K: P.K, w: P.w, y: P.y, p: P.p, n: P.n, i: P.i, b: P.belly };
@@ -620,6 +662,8 @@ function catFrame(who, pose, frame) {
   if (pose === 'swat') { // paw thrust forward at head height
     px(c2, 14, 7 + oy, 4, 2, P.k); px(c2, 18, 6 + oy, 2, 2, P.paw[3] === P.k ? '#2c2c34' : P.paw[3]);
   }
+  if (wed && who === 'ba') { px(c2, 13, 8 + oy, 1, 2, '#c8344a'); px(c2, 15, 8 + oy, 1, 2, '#c8344a'); px(c2, 14, 8 + oy, 1, 1, '#8a1a2a'); }
+  if (wed && who === 'mikey') [11, 12, 13, 14, 15].forEach((x, i) => px(c2, x, 8 + oy - (i === 2 ? 1 : 0), 1, 1, i % 2 ? '#f4b6c2' : '#ffffff'));
   return catCache[key] = c;
 }
 
@@ -717,12 +761,253 @@ function buildSprites() {
 
 /* ---------- portraits for HUD / dialog (head crops) ---------- */
 const portraitCache = {};
-function portrait(who) {
-  if (portraitCache[who]) return portraitCache[who];
+function portrait(who, wed) {
+  const key = who + (wed ? 'W' : '');
+  if (portraitCache[key]) return portraitCache[key];
   const c = newCanvas(20, 20), c2 = c.getContext('2d');
-  if (who === 'alex' || who === 'katherine') c2.drawImage(humanFrame(who, 'idle', 0), 0, 0, 16, 16, 2, 3, 16, 16);
-  else c2.drawImage(catFrame(who, 'idle', 0), 9, 0, 11, 10, 4, 5, 11, 10);
-  return portraitCache[who] = c;
+  if (who === 'alex' || who === 'katherine') c2.drawImage(humanFrame(who, 'idle', 0, wed), 0, 0, 16, 16, 2, 3, 16, 16);
+  else c2.drawImage(catFrame(who, 'idle', 0, wed), 9, 0, 11, 10, 4, 5, 11, 10);
+  return portraitCache[key] = c;
+}
+</script>
+
+<script>
+'use strict';
+/* =========================================================================
+   CARTOON HEROES — the "Characters: Cartoon" setting. Smooth vector art drawn
+   on the high-resolution layer so it stays crisp on any screen. Everything is
+   drawn at the origin = the hero's feet, facing right, with up = -y.
+   ========================================================================= */
+const TOON = {
+  alex: { skin: '#f1c6a2', skinD: '#d9a27f', hair: '#4b2e1b', hairHi: '#7a4e2e', top: '#2f3d5c', topD: '#232e47', collar: '#42557e', pants: '#b08a58', pantsD: '#977242', shoes: '#2a2d33' },
+  katherine: { skin: '#f8d5bd', skinD: '#e6b49a', hair: '#a98058', hairHi: '#d3ae7c', hairD: '#7d5a38', top: '#f6f3ec', topD: '#dcd5c7', pants: '#857476', pantsD: '#6f6062', shoes: '#1c1c20' }
+};
+TOON.alexW = Object.assign({}, TOON.alex, { top: '#17171d', topD: '#0e0e12', pants: '#1d1d23', pantsD: '#141418', shoes: '#0b0b0d' });
+TOON.katherineW = Object.assign({}, TOON.katherine, { top: '#fdfcf9', topD: '#e6e0d4' });
+const TOL = '#2a1f26';
+function toonRR(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function toonKit(c, u) {
+  const X = d => d * u, Y = y => -y * u, L = v => v * u, OL = 1.5;
+  const F = col => { c.fillStyle = col; c.fill(); c.lineWidth = L(OL); c.strokeStyle = TOL; c.stroke(); };
+  const line = (col, w) => { c.lineWidth = L(w); c.strokeStyle = col; c.stroke(); };
+  const cap = (x1, y1, x2, y2, w, col) => {
+    c.beginPath(); c.moveTo(X(x1), Y(y1)); c.lineTo(X(x2), Y(y2)); line(TOL, w + OL * 2);
+    c.beginPath(); c.moveTo(X(x1), Y(y1)); c.lineTo(X(x2), Y(y2)); line(col, w);
+  };
+  const oval = (x, y, rx, ry, col, rot = 0, plain) => { c.beginPath(); c.ellipse(X(x), Y(y), L(rx), L(ry), rot, 0, 7); if (plain) { c.fillStyle = col; c.fill(); } else F(col); };
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  return { X, Y, L, F, line, cap, oval, OL };
+}
+function toonHuman(c, H, who, wed, pose, t) {
+  const P = TOON[who + (wed ? 'W' : '')], u = H / 100, K = who === 'katherine';
+  const { X, Y, L, F, line, cap, oval } = toonKit(c, u);
+  const hH = 40, hW = 36, legs = 25, torso = 32, tTop = 57, tw = 30, lw = K && !wed ? 13 : 11.5, aw = 8, fx = 3.2;
+  const run = pose === 'run', p = t * 0.32;
+  const bob = run ? Math.abs(Math.sin(p)) * 2 : pose === 'idle' ? Math.sin(t * 0.07) * 0.7 : 0;
+  const top = tTop + bob, hc = top + 3 + hH / 2, sx = tw / 2 - 3, shY = top - 4;
+  let fF = [5, 0], fB = [-5, 0];
+  if (run) { fF = [1 + 6 * Math.sin(p), Math.max(0, -Math.cos(p)) * 6]; fB = [-1 - 6 * Math.sin(p), Math.max(0, Math.cos(p)) * 6]; }
+  else if (pose === 'jump') { fF = [7, 7]; fB = [-4, 3]; }
+  else if (pose === 'fall') { fF = [6, 2]; fB = [-6, 5]; }
+  else if (pose === 'swing') { fF = [3, 1]; fB = [-3, 3]; }
+  let hF = [sx + 3, shY - 26], hB = [-sx - 3, shY - 26];
+  if (run) { hF = [sx + 1 - 7 * Math.sin(p), shY - 24]; hB = [-sx - 1 + 7 * Math.sin(p), shY - 24]; }
+  else if (pose === 'jump') { hF = [sx + 7, shY + 12]; hB = [-sx - 7, shY + 10]; }
+  else if (pose === 'fall') { hF = [sx + 10, shY - 4]; hB = [-sx - 10, shY - 2]; }
+  else if (pose === 'swing') hF = [sx - 1, shY + 30];
+  else if (pose === 'abil') { hF = K ? [sx + 10, shY - 13] : [sx + 18, shY - 3]; if (K) hB = [sx + 3, shY - 15]; }
+  const bouquet = K && wed && pose !== 'abil' && pose !== 'swing';
+  if (bouquet) { hF = [8, legs + 8 + bob]; hB = [0, legs + 7 + bob]; }
+  const sleeveFull = !(who === 'alex' && !wed), armCol = (K && wed) ? P.skin : sleeveFull ? P.top : P.skin;
+  const arm = (sh, h, back) => {
+    cap(sh[0], sh[1], h[0], h[1], aw, back && armCol !== P.skin ? P.topD : armCol);
+    if (!sleeveFull) { const mx = sh[0] + (h[0] - sh[0]) * 0.42, my = sh[1] + (h[1] - sh[1]) * 0.42; cap(sh[0], sh[1], mx, my, aw + 2.5, back ? P.topD : P.top); }
+    if (wed && !K) { const mx = sh[0] + (h[0] - sh[0]) * 0.86, my = sh[1] + (h[1] - sh[1]) * 0.86; c.beginPath(); c.arc(X(mx), Y(my), L(aw * 0.5), 0, 7); c.fillStyle = '#fafafa'; c.fill(); }
+    oval(h[0], h[1], aw * 0.55, aw * 0.6, P.skin);
+  };
+  // hair behind, veil
+  if (K) { c.beginPath(); toonRR(c, X(-hW * 0.6), Y(hc + hH * 0.45), L(hW * 1.2), L(hH * 0.95 + torso * 0.55), L(hW * 0.45)); F(P.hairD); }
+  if (K && wed) {
+    const fl = run ? Math.sin(p) * 3 : Math.sin(t * 0.05);
+    c.save(); c.globalAlpha = 0.6; c.beginPath(); c.moveTo(X(-hW * 0.3), Y(hc + hH * 0.42));
+    c.quadraticCurveTo(X(-tw * 1.0 - fl), Y(legs * 0.9), X(-tw * 0.95 - fl * 1.5), Y(5)); c.lineTo(X(-2), Y(8));
+    c.quadraticCurveTo(X(tw * 0.2), Y(legs), X(hW * 0.3), Y(hc + hH * 0.42)); c.closePath(); c.fillStyle = '#ffffff'; c.fill(); c.restore();
+  }
+  arm([-sx, shY], hB, true);
+  // legs or skirt
+  if (K && wed) {
+    const sw = run ? Math.sin(p) * 3 : 0;
+    if (run) { oval(fF[0] + 2, fF[1] + 1.5, 4, 2.4, P.shoes); oval(fB[0] + 2, fB[1] + 1.5, 4, 2.4, P.shoes); }
+    c.beginPath(); c.moveTo(X(-tw * 0.42), Y(legs + torso * 0.1 + bob)); c.lineTo(X(tw * 0.42), Y(legs + torso * 0.1 + bob));
+    c.quadraticCurveTo(X(tw * 0.75), Y(legs * 0.5), X(tw * 1.0 + sw), Y(2)); c.quadraticCurveTo(X(sw * 0.5), Y(-1), X(-tw * 1.0 + sw), Y(2));
+    c.quadraticCurveTo(X(-tw * 0.75), Y(legs * 0.5), X(-tw * 0.42), Y(legs + torso * 0.1 + bob)); c.closePath(); F(P.top);
+    [-0.5, 0, 0.5].forEach(i => { c.beginPath(); c.moveTo(X(tw * 0.18 * i), Y(legs + bob)); c.lineTo(X(tw * 0.8 * i + sw * 0.6), Y(4)); line(P.topD, 1); });
+  } else {
+    for (const [f, back] of [[fB, true], [fF, false]]) {
+      const hx = back ? -4 : 4;
+      cap(hx, legs + bob, f[0], f[1] + 3.5, lw, back ? P.pantsD : P.pants);
+      oval(f[0] + 2.2, f[1] + 1.8, lw * 0.62, 2.8, P.shoes);
+    }
+  }
+  // torso and clothes
+  c.beginPath(); toonRR(c, X(-3), Y(top + 3.5), L(6), L(6), L(2)); F(P.skin);
+  if (K && wed) {
+    c.beginPath(); toonRR(c, X(-tw / 2), Y(top), L(tw), L(torso * 0.4), L(tw * 0.3)); F(P.skin);
+    c.beginPath(); c.moveTo(X(-tw * 0.47), Y(top - torso * 0.24)); c.quadraticCurveTo(X(-tw * 0.25), Y(top - torso * 0.1), X(0), Y(top - torso * 0.26));
+    c.quadraticCurveTo(X(tw * 0.25), Y(top - torso * 0.1), X(tw * 0.47), Y(top - torso * 0.24)); c.lineTo(X(tw * 0.42), Y(legs + bob + torso * 0.05)); c.lineTo(X(-tw * 0.42), Y(legs + bob + torso * 0.05)); c.closePath(); F(P.top);
+    c.beginPath(); c.rect(X(-tw * 0.43), Y(legs + bob + torso * 0.22), L(tw * 0.86), L(2)); c.fillStyle = '#e8d9ae'; c.fill();
+  } else {
+    c.beginPath(); toonRR(c, X(-tw / 2), Y(top), L(tw), L(torso + 3), L(tw * 0.3)); F(P.top);
+  }
+  if (who === 'alex' && !wed) {
+    c.beginPath(); c.rect(X(-tw / 2 + 0.8), Y(legs + bob + 2.5), L(tw - 1.6), L(2)); c.fillStyle = '#5a4030'; c.fill();
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(X(s * 5.5 + fx * 0.4), Y(top + 0.5)); c.lineTo(X(s * 0.6 + fx * 0.4), Y(top - 5)); c.lineTo(X(s * 1 + fx * 0.4), Y(top + 0.5)); c.closePath(); F(P.collar); }
+    c.beginPath(); c.moveTo(X(-5 + fx * 0.4), Y(top + 0.5)); c.bezierCurveTo(X(-8.5), Y(top - torso * 0.4), X(-4.5), Y(top - torso * 0.55), X(-3.5), Y(top - torso * 0.6)); line('#2f3338', 1.8);
+    c.beginPath(); c.moveTo(X(5 + fx * 0.4), Y(top + 0.5)); c.bezierCurveTo(X(8.5), Y(top - torso * 0.35), X(7.5), Y(top - torso * 0.45), X(6.2), Y(top - torso * 0.5)); line('#2f3338', 1.8);
+    c.beginPath(); c.arc(X(-3.5), Y(top - torso * 0.64), L(2.5), 0, 7); c.fillStyle = '#cfd6de'; c.fill(); line('#5a6068', 0.6);
+  }
+  if (who === 'alex' && wed) {
+    c.beginPath(); c.moveTo(X(-6), Y(top)); c.lineTo(X(6), Y(top)); c.lineTo(X(0), Y(top - torso * 0.55)); c.closePath(); c.fillStyle = '#fafafa'; c.fill();
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(X(s * 6), Y(top)); c.lineTo(X(0), Y(top - torso * 0.55)); c.lineTo(X(s * 8.5), Y(top - torso * 0.28)); c.closePath(); c.fillStyle = '#2e2e38'; c.fill(); }
+    c.beginPath(); c.moveTo(X(0), Y(top - 1.6)); c.lineTo(X(-4.5), Y(top + 0.4)); c.lineTo(X(-4.5), Y(top - 3.6)); c.closePath(); c.moveTo(X(0), Y(top - 1.6)); c.lineTo(X(4.5), Y(top + 0.4)); c.lineTo(X(4.5), Y(top - 3.6)); c.closePath(); c.fillStyle = '#0a0a0c'; c.fill();
+    [0.66, 0.82].forEach(k => { c.beginPath(); c.arc(X(0), Y(top - torso * k), L(0.9), 0, 7); c.fillStyle = '#44444e'; c.fill(); });
+    c.beginPath(); c.arc(X(tw * 0.3), Y(top - torso * 0.2), L(2), 0, 7); c.fillStyle = '#ffffff'; c.fill();
+    c.beginPath(); c.ellipse(X(tw * 0.3 + 1.8), Y(top - torso * 0.2 - 1.8), L(1.4), L(0.8), 0.6, 0, 7); c.fillStyle = '#6a9a5a'; c.fill();
+  }
+  if (K && !wed) {
+    c.beginPath(); c.moveTo(X(-4), Y(top)); c.lineTo(X(4), Y(top)); c.lineTo(X(0), Y(top - torso * 0.32)); c.closePath(); c.fillStyle = '#ffffff'; c.fill();
+    c.beginPath(); c.moveTo(X(0), Y(top - torso * 0.3)); c.lineTo(X(0), Y(legs + bob + 3)); line(P.topD, 0.7);
+    c.beginPath(); c.moveTo(X(tw * 0.42), Y(top - 1)); c.lineTo(X(-tw * 0.42), Y(legs + bob + torso * 0.18)); line('#1d1d20', 1.8);
+    c.beginPath(); toonRR(c, X(-tw * 0.66), Y(legs + bob + torso * 0.3), L(10), L(7.5), L(2.4)); F('#1d1d20');
+  }
+  // head
+  if (!K) for (const s of [-1, 1]) oval(s * hW * 0.5, hc - hH * 0.02, hW * 0.09, hH * 0.12, P.skin);
+  oval(0, hc, hW / 2, hH / 2, P.skin);
+  if (!K) {
+    c.beginPath(); c.moveTo(X(-hW * 0.52), Y(hc + hH * 0.02)); c.quadraticCurveTo(X(-hW * 0.62), Y(hc + hH * 0.56), X(-hW * 0.1), Y(hc + hH * 0.6));
+    c.quadraticCurveTo(X(hW * 0.46), Y(hc + hH * 0.66), X(hW * 0.55), Y(hc + hH * 0.1)); c.quadraticCurveTo(X(hW * 0.42), Y(hc + hH * 0.3), X(hW * 0.2), Y(hc + hH * 0.3));
+    c.quadraticCurveTo(X(-hW * 0.05), Y(hc + hH * 0.44), X(-hW * 0.3), Y(hc + hH * 0.22)); c.quadraticCurveTo(X(-hW * 0.42), Y(hc + hH * 0.3), X(-hW * 0.47), Y(hc + hH * 0.08)); c.closePath(); F(P.hair);
+    c.beginPath(); c.moveTo(X(-hW * 0.25), Y(hc + hH * 0.5)); c.quadraticCurveTo(X(hW * 0.05), Y(hc + hH * 0.58), X(hW * 0.3), Y(hc + hH * 0.46)); line(P.hairHi, 1.6);
+  } else {
+    c.beginPath(); c.moveTo(X(0), Y(hc + hH * 0.52)); c.quadraticCurveTo(X(-hW * 0.62), Y(hc + hH * 0.56), X(-hW * 0.6), Y(hc - hH * 0.1));
+    c.quadraticCurveTo(X(-hW * 0.6), Y(hc - hH * 0.55), X(-hW * 0.68), Y(hc - hH * 0.78)); c.lineTo(X(-hW * 0.4), Y(hc - hH * 0.64));
+    c.quadraticCurveTo(X(-hW * 0.43), Y(hc - hH * 0.1), X(-hW * 0.3), Y(hc + hH * 0.2)); c.quadraticCurveTo(X(-hW * 0.15), Y(hc + hH * 0.36), X(0), Y(hc + hH * 0.38));
+    c.quadraticCurveTo(X(hW * 0.15), Y(hc + hH * 0.36), X(hW * 0.3), Y(hc + hH * 0.2)); c.quadraticCurveTo(X(hW * 0.43), Y(hc - hH * 0.1), X(hW * 0.4), Y(hc - hH * 0.64));
+    c.lineTo(X(hW * 0.68), Y(hc - hH * 0.78)); c.quadraticCurveTo(X(hW * 0.6), Y(hc - hH * 0.55), X(hW * 0.6), Y(hc - hH * 0.1)); c.quadraticCurveTo(X(hW * 0.62), Y(hc + hH * 0.56), X(0), Y(hc + hH * 0.52)); c.closePath(); F(P.hair);
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(X(s * hW * 0.12), Y(hc + hH * 0.44)); c.quadraticCurveTo(X(s * hW * 0.5), Y(hc + hH * 0.3), X(s * hW * 0.5), Y(hc - hH * 0.4)); line(P.hairHi, 1.4); }
+    if (!wed) { for (const s of [-1, 1]) oval(s * hW * 0.2, hc + hH * 0.47, hW * 0.17, hH * 0.075, '#2b2522', 0, true); c.beginPath(); c.moveTo(X(-hW * 0.05), Y(hc + hH * 0.48)); c.lineTo(X(hW * 0.05), Y(hc + hH * 0.48)); line('#2b2522', 1.2); }
+    else for (let i = -2; i <= 2; i++) oval(i * hW * 0.1, hc + hH * 0.5 - Math.abs(i) * hH * 0.02, 1.4, 1.4, '#fffaf0', 0, true);
+  }
+  const ey = hc - hH * 0.04, ex = hW * 0.2, er = hH * 0.085, blink = (t % 230) > 223;
+  for (const s of [-1, 1]) {
+    if (blink) { c.beginPath(); c.moveTo(X(s * ex + fx - er), Y(ey)); c.lineTo(X(s * ex + fx + er), Y(ey)); line('#2a1d16', 1.4); }
+    else { oval(s * ex + fx, ey, er * 0.8, er * 1.2, '#2a1d16', 0, true); oval(s * ex + fx + er * 0.25, ey + er * 0.4, er * 0.32, er * 0.32, '#ffffff', 0, true); }
+    c.beginPath(); c.moveTo(X(s * ex + fx - er * 1.1), Y(ey + hH * 0.14)); c.lineTo(X(s * ex + fx + er * 1.1), Y(ey + hH * 0.15)); line(K ? P.hairD : '#3a2414', 1.2);
+  }
+  if (!K) {
+    const gw = hW * 0.31, gh = hH * 0.2;
+    for (const s of [-1, 1]) { c.beginPath(); toonRR(c, X(s * ex + fx - gw / 2), Y(ey + gh * 0.55), L(gw), L(gh), L(gh * 0.3)); c.fillStyle = 'rgba(225,240,255,0.35)'; c.fill(); line('#141418', 1.6); }
+    c.beginPath(); c.moveTo(X(-ex + fx + gw / 2), Y(ey + gh * 0.2)); c.lineTo(X(ex + fx - gw / 2), Y(ey + gh * 0.2)); line('#141418', 1.4);
+  }
+  for (const s of [-1, 1]) oval(s * hW * 0.3 + fx, hc - hH * 0.15, hW * 0.09, hH * 0.05, 'rgba(240,140,140,0.45)', 0, true);
+  c.beginPath(); c.arc(X(fx), Y(hc - hH * 0.17), L(hW * 0.11), 0.2 * Math.PI, 0.8 * Math.PI); line('#9a4a44', 1.4);
+  // front arm, then whatever the hands are holding
+  arm([sx, shY], hF, false);
+  if (pose === 'abil' && K) {
+    const bx = sx + 2, by = shY - 15;
+    c.beginPath(); toonRR(c, X(bx), Y(by + 1), L(17), L(2.4), L(1)); F('#b8c0c8');
+    c.save(); c.translate(X(bx + 2), Y(by + 1)); c.rotate(-0.25); c.beginPath(); toonRR(c, 0, -L(11), L(14), L(11), L(1.5)); F('#2d3540');
+    c.fillStyle = '#62f08a'; for (let i = 0; i < 3; i++) c.fillRect(L(2), -L(9 - i * 3), L(4 + ((t >> 3) + i) % 3 * 2.5), L(1.2)); c.restore();
+  }
+  if (bouquet) {
+    const bx = 4, by = legs + 9 + bob;
+    [[-3.5, -1, 2.6], [3.5, -1.2, 2.6], [0, -2.6, 2.4]].forEach(([dx, dy, r]) => oval(bx + dx, by + dy - 1.5, r * 1.3, r * 0.7, '#6a9a5a', dx * 0.2, true));
+    [[0, 1.5, '#f4b6c2'], [-3, 0.5, '#ffffff'], [3, 0.5, '#f7d7a8'], [-1.5, 3.6, '#ffffff'], [1.8, 3.4, '#f4b6c2'], [0, -0.8, '#ffffff']].forEach(([dx, dy, col]) => oval(bx + dx, by + dy, 2.3, 2.3, col));
+  }
+}
+function catPal(who) {
+  const B = who === 'ba';
+  return { B, body: B ? '#1c1c22' : '#e48a3a', far: B ? '#111115' : '#c8722e', light: B ? '#f6f6f2' : '#f8d4a0', stripe: '#b5602a', eye: B ? '#c8d64a' : '#b7c24a', nose: B ? '#3d2c33' : '#e8919a', inner: B ? '#5a3f48' : '#efa6a6' };
+}
+function toonCatSit(c, S, who, wed, blink) {
+  const u = S / 100, C = catPal(who), { X, Y, L, F, line, oval } = toonKit(c, u);
+  const tail = () => { c.beginPath(); c.moveTo(X(20), Y(12)); c.bezierCurveTo(X(48), Y(8), X(44), Y(-2), X(8), Y(2.5)); };
+  tail(); line(TOL, 12); tail(); line(C.body, 9);
+  if (!C.B) { tail(); c.setLineDash([L(4), L(6)]); line(C.stripe, 9); c.setLineDash([]); }
+  for (const s of [-1, 1]) oval(s * 21, 3.5, 7.5, 3.8, C.light);
+  c.beginPath(); c.moveTo(X(-24), Y(4)); c.bezierCurveTo(X(-31), Y(30), X(-18), Y(57), X(0), Y(59)); c.bezierCurveTo(X(18), Y(57), X(31), Y(30), X(24), Y(4)); c.closePath(); F(C.body);
+  if (!C.B) for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(X(s * (26 - i * 2)), Y(18 + i * 11)); c.quadraticCurveTo(X(s * (18 - i * 2)), Y(22 + i * 11), X(s * (15 - i)), Y(19 + i * 11)); line(C.stripe, 2.6); }
+  c.beginPath(); c.moveTo(X(-10), Y(57)); c.quadraticCurveTo(X(0), Y(61), X(10), Y(57)); c.quadraticCurveTo(X(9), Y(30), X(0), Y(C.B ? 14 : 24)); c.quadraticCurveTo(X(-9), Y(30), X(-10), Y(57)); c.fillStyle = C.light; c.fill();
+  for (const s of [-1, 1]) { c.beginPath(); toonRR(c, X(s * 7 - 4.6), Y(35), L(9.2), L(33), L(4.6)); F(C.body); oval(s * 7, 2.8, 5.8, 3.3, C.B ? '#2c2c34' : C.light); }
+  for (const s of [-1, 1]) { c.beginPath(); c.moveTo(X(s * 7), Y(89)); c.lineTo(X(s * 21), Y(105)); c.lineTo(X(s * 24), Y(82)); c.closePath(); F(C.body); c.beginPath(); c.moveTo(X(s * 10), Y(89)); c.lineTo(X(s * 19.5), Y(100)); c.lineTo(X(s * 21), Y(86)); c.closePath(); c.fillStyle = C.inner; c.fill(); }
+  oval(0, 76, 25.5, 21, C.body);
+  if (!C.B) { [-6, 0, 6].forEach(dx => { c.beginPath(); c.moveTo(X(dx), Y(95)); c.lineTo(X(dx * 0.8), Y(87)); line(C.stripe, 2.4); }); for (const s of [-1, 1]) { c.beginPath(); c.moveTo(X(s * 25), Y(78)); c.lineTo(X(s * 18), Y(76)); line(C.stripe, 2.2); } }
+  oval(-5.5, 67, 8, 7, C.light, 0, true); oval(5.5, 67, 8, 7, C.light, 0, true); oval(0, 62, 7, 5, C.light, 0, true);
+  for (const s of [-1, 1]) {
+    if (blink) { c.beginPath(); c.arc(X(s * 9.5), Y(79), L(5), 0.15 * Math.PI, 0.85 * Math.PI); line('#111', 1.8); continue; }
+    oval(s * 9.5, 78, 5.6, 6.4, C.eye, 0, true); oval(s * 9.5, 78, 1.7, 5.4, '#111', 0, true); oval(s * 9.5 + 2, 80, 1.3, 1.3, '#fff', 0, true);
+  }
+  c.beginPath(); c.moveTo(X(-2.6), Y(71.5)); c.lineTo(X(2.6), Y(71.5)); c.lineTo(X(0), Y(68.5)); c.closePath(); c.fillStyle = C.nose; c.fill();
+  for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(X(s * 8), Y(68 - i * 1.8)); c.lineTo(X(s * (C.B ? 42 : 34)), Y(72 - i * 5)); line(C.B ? '#ffffff' : '#fff4e0', 0.8); }
+  if (wed && C.B) { c.beginPath(); c.moveTo(X(0), Y(57)); c.lineTo(X(-6), Y(60.5)); c.lineTo(X(-6), Y(53.5)); c.closePath(); c.moveTo(X(0), Y(57)); c.lineTo(X(6), Y(60.5)); c.lineTo(X(6), Y(53.5)); c.closePath(); c.fillStyle = '#c8344a'; c.fill(); oval(0, 57, 1.8, 1.8, '#a02238', 0, true); }
+  if (wed && !C.B) [-12, -6, 0, 6, 12].forEach((dx, i) => { oval(dx, 57 - Math.abs(dx) * 0.12, 2.6, 2.6, i % 2 ? '#f4b6c2' : '#ffffff'); oval(dx, 57 - Math.abs(dx) * 0.12, 0.9, 0.9, '#f2c94c', 0, true); });
+}
+function toonCatSide(c, S, who, wed, pose, t) {
+  const u = S / 100, C = catPal(who), { X, Y, L, F, line, cap, oval } = toonKit(c, u);
+  const walk = pose === 'walk', air = pose === 'jump', p = t * 0.42;
+  const bob = walk ? Math.abs(Math.sin(p)) * 1.5 : 0;
+  const foot = (hx, ph) => air ? [hx + (hx < 0 ? -7 : 7), 9] : walk ? [hx + Math.sin(p + ph) * 7, Math.max(0, Math.cos(p + ph)) * 4] : [hx, 0];
+  const legsSpec = [[-22, 0, false], [-12, Math.PI, true], [14, Math.PI, true], [24, 0, false]];
+  const sway = walk ? Math.sin(p) * 4 : Math.sin(t * 0.05) * 2;
+  const tail = () => { c.beginPath(); c.moveTo(X(-30), Y(34 + bob)); c.bezierCurveTo(X(-46), Y(44 + bob), X(-50 + sway), Y(62), X(-40 + sway), Y(76)); };
+  tail(); line(TOL, 12); tail(); line(C.body, 9);
+  if (!C.B) { tail(); c.setLineDash([L(4), L(6)]); line(C.stripe, 9); c.setLineDash([]); }
+  const drawLeg = ([hx, ph, far]) => {
+    if (pose === 'swat' && hx === 24) return;
+    const f = foot(hx, ph), col = far ? C.far : C.body, sock = C.B && hx < 0;
+    cap(hx, 22 + bob, f[0], f[1] + 3, 8.5, col);
+    if (sock) cap(hx + (f[0] - hx) * 0.5, (22 + bob + f[1] + 3) / 2, f[0], f[1] + 3, 8.5, C.light);
+    oval(f[0] + 2, f[1] + 2.2, 5.2, 3, sock || !C.B ? C.light : '#2c2c34');
+  };
+  legsSpec.filter(l => l[2]).forEach(drawLeg);
+  oval(-4, 30 + bob, 30, 16, C.body);
+  if (C.B) { oval(-4, 18 + bob, 19, 5, C.light, 0, true); oval(17, 29 + bob, 9, 12, C.light, 0.3, true); }
+  else { [-20, -8, 4].forEach(sx2 => { c.beginPath(); c.moveTo(X(sx2 - 3), Y(45 + bob)); c.quadraticCurveTo(X(sx2), Y(38 + bob), X(sx2 - 2), Y(31 + bob)); line(C.stripe, 3); }); oval(16, 28 + bob, 8, 10, C.light, 0.3, true); }
+  legsSpec.filter(l => !l[2]).forEach(drawLeg);
+  if (pose === 'swat') { cap(22, 28 + bob, 40, 38 + bob, 8.5, C.body); oval(42, 39 + bob, 5, 4, C.B ? '#2c2c34' : C.light); }
+  const hx = 30, hy = 50 + bob;
+  c.beginPath(); c.moveTo(X(hx - 12), Y(hy + 12)); c.lineTo(X(hx - 16), Y(hy + 30)); c.lineTo(X(hx - 2), Y(hy + 17)); c.closePath(); F(C.far);
+  oval(hx, hy, 20, 18, C.body);
+  c.beginPath(); c.moveTo(X(hx + 2), Y(hy + 16)); c.lineTo(X(hx + 10), Y(hy + 32)); c.lineTo(X(hx + 15), Y(hy + 12)); c.closePath(); F(C.body);
+  c.beginPath(); c.moveTo(X(hx + 5), Y(hy + 16)); c.lineTo(X(hx + 10), Y(hy + 27)); c.lineTo(X(hx + 12.5), Y(hy + 14)); c.closePath(); c.fillStyle = C.inner; c.fill();
+  if (!C.B) { [-4, 1, 6].forEach(dx => { c.beginPath(); c.moveTo(X(hx + dx), Y(hy + 17)); c.lineTo(X(hx + dx + 1), Y(hy + 10)); line(C.stripe, 2.2); }); }
+  oval(hx + 12, hy - 7, 9, 7, C.light, 0, true);
+  if (C.B) oval(hx + 8, hy - 13, 7, 4, C.light, 0, true);
+  const blink = (t % 210) > 203;
+  for (const ex2 of [hx + 3, hx + 14]) {
+    if (blink) { c.beginPath(); c.moveTo(X(ex2 - 3), Y(hy + 2)); c.lineTo(X(ex2 + 3), Y(hy + 2)); line('#111', 1.4); continue; }
+    oval(ex2, hy + 2, 3.8, 4.8, C.eye, 0, true); oval(ex2 + 0.8, hy + 2, 1.2, 4, '#111', 0, true); oval(ex2 + 1.8, hy + 3.5, 1, 1, '#fff', 0, true);
+  }
+  c.beginPath(); c.moveTo(X(hx + 17), Y(hy - 3)); c.lineTo(X(hx + 21), Y(hy - 3)); c.lineTo(X(hx + 19), Y(hy - 5.5)); c.closePath(); c.fillStyle = C.nose; c.fill();
+  for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(X(hx + 18), Y(hy - 7 - i * 1.5)); c.lineTo(X(hx + (C.B ? 40 : 34)), Y(hy - 4 - i * 5)); line(C.B ? '#ffffff' : '#fff4e0', 0.8); }
+  if (wed && C.B) { c.beginPath(); c.moveTo(X(hx - 4), Y(hy - 15)); c.lineTo(X(hx - 10), Y(hy - 11)); c.lineTo(X(hx - 9), Y(hy - 19)); c.closePath(); c.moveTo(X(hx - 4), Y(hy - 15)); c.lineTo(X(hx + 2), Y(hy - 11)); c.lineTo(X(hx + 1), Y(hy - 19)); c.closePath(); c.fillStyle = '#c8344a'; c.fill(); oval(hx - 4, hy - 15, 1.8, 1.8, '#a02238', 0, true); }
+  if (wed && !C.B) [[-12, -14], [-6, -16], [0, -16.5], [6, -15]].forEach(([dx, dy], i) => { oval(hx + dx, hy + dy, 2.6, 2.6, i % 2 ? '#f4b6c2' : '#ffffff'); oval(hx + dx, hy + dy, 0.9, 0.9, '#f2c94c', 0, true); });
+}
+// one entry point used by the renderer
+function toonHero(c, who, wed, pose, t) {
+  if (HERO[who].cat) {
+    if (pose === 'idle' || pose === 'blink') toonCatSit(c, 13.4, who, wed, pose === 'blink');
+    else { c.save(); c.translate(0.6, 0); toonCatSide(c, 16.5, who, wed, pose, t); c.restore(); }
+  } else toonHuman(c, 31, who, wed, pose, t);
+}
+const toonPortraitCache = {};
+function toonPortrait(who, wed) {
+  const key = who + (wed ? 'W' : '');
+  if (toonPortraitCache[key]) return toonPortraitCache[key];
+  const c = newCanvas(64, 64), c2 = c.getContext('2d');
+  if (HERO[who].cat) { c2.translate(32, 102); toonCatSit(c2, 92, who, wed, false); }
+  else { c2.translate(32, 116); toonHuman(c2, 105, who, wed, 'idle', 0); }
+  return toonPortraitCache[key] = c;
 }
 </script>
 
@@ -1946,7 +2231,7 @@ function loadZone(id, spawn, opts = {}) {
   Z.escSteps = null; particles.length = 0; state.banner = null; state.doorHere = null;
   snapCamera();
   Music.play(Z.src.music);
-  if (!save.visited[id]) { save.visited[id] = 1; state.card = { phase: Z.src.phase, t: 230 }; }
+  if (!save.visited[id]) { save.visited[id] = 1; state.card = { phase: Z.src.phase, t: 230 }; if (id === 'nature') toast('Dressed for the big day! Spot the birds on the way to the overlook.', 300); }
   updateTouchLabels();
   persist();
 }
@@ -2106,9 +2391,27 @@ function drawEnemy(e) {
     g.restore();
   }
 }
+// Phase III (the birding trail) and the ending: everyone is dressed for the wedding
+function outfitNow() { return state.mode !== 'title' && (state.mode === 'ending' || state.zoneId === 'nature'); }
+function heroPortrait(who) { const wed = outfitNow(); return settings.style === 'toon' ? toonPortrait(who, wed) : portrait(who, wed); }
+const deferred = [];        // cartoon heroes wait here and are drawn crisp after the pixel world is scaled up
+function drawDeferred() {
+  for (const d of deferred) {
+    const m = d.m;
+    ctx.setTransform(m.a * KS, m.b * KS, m.c * KS, m.d * KS, m.e * KS, m.f * KS);
+    ctx.save(); ctx.translate(d.x, d.feet); ctx.scale(d.facing < 0 ? -1 : 1, d.gd < 0 ? -1 : 1);
+    if (d.alpha != null) ctx.globalAlpha = d.alpha;
+    toonHero(ctx, d.who, d.wed, d.pose, d.t);
+    ctx.restore();
+  }
+  deferred.length = 0;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
 function drawHero(who, x, feet, facing, gd, pose, frame, alpha) {
+  const wed = outfitNow();
+  if (settings.style === 'toon') { deferred.push({ m: g.getTransform(), who, x, feet, facing, gd, pose, alpha, wed, t: state.t }); return; }
   const cat = HERO[who].cat;
-  const img = cat ? catFrame(who, pose, frame) : humanFrame(who, pose, frame);
+  const img = cat ? catFrame(who, pose, frame, wed) : humanFrame(who, pose, frame, wed);
   const y = gd > 0 ? feet - img.height : feet;
   drawImg(img, x - img.width / 2, y, facing < 0, gd < 0, alpha);
 }
@@ -2131,7 +2434,8 @@ function drawPlayer() {
   if (P.dead) return;
   if (P.inv && (state.t >> 2) % 2) return;
   const gd = state.grav, [pose, fr] = heroPose();
-  const hand = { x: pcx() + P.facing * 4, y: gd > 0 ? P.y + 9 : P.y + P.h - 9 };
+  const toon = settings.style === 'toon', hy = toon && P.rope ? 2 : 9;
+  const hand = { x: pcx() + P.facing * (toon ? 3 : 4), y: gd > 0 ? P.y + hy : P.y + P.h - hy };
   if (P.rope) {
     const a = P.rope.a;
     g.strokeStyle = '#2e3238'; g.lineWidth = 2; g.beginPath(); g.moveTo(hand.x, hand.y); g.lineTo(a.x, a.y); g.stroke();
@@ -2269,11 +2573,11 @@ const PANEL = 'rgba(22,14,28,.78)', PANEL_LINE = 'rgba(255,255,255,.25)';
 function drawHudPixels() {
   const avail = ORDER.filter(w => save.have[w]);
   rr(g, 4.5, 4.5, 24, 24, 4, PANEL, PANEL_LINE);
-  g.drawImage(portrait(P.who), 6, 6);
+  if (settings.style !== 'toon') g.drawImage(heroPortrait(P.who), 6, 6);
   if (avail.length > 1) avail.forEach((w, i) => {
     const x = 5 + i * 14;
     rr(g, x + 0.5, 31.5, 12, 12, 2, w === P.who ? 'rgba(255,214,102,.9)' : PANEL, PANEL_LINE);
-    g.drawImage(portrait(w), x + 1, 32, 11, 11);
+    if (settings.style !== 'toon') g.drawImage(heroPortrait(w), x + 1, 32, 11, 11);
   });
   const hy = avail.length > 1 ? 48 : 33;
   g.drawImage(SPR.heart, 6, hy);
@@ -2291,6 +2595,12 @@ function drawHudPixels() {
 function drawHudText() {
   const avail = ORDER.filter(w => save.have[w]);
   if (state.mode === 'map') return drawMapText();
+  if (settings.style === 'toon') {
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(heroPortrait(P.who), 5 * KS, 5 * KS, 24 * KS, 24 * KS);
+    if (avail.length > 1) avail.forEach((w, i) => ctx.drawImage(heroPortrait(w), (5.5 + i * 14) * KS, 32 * KS, 11 * KS, 11 * KS));
+    ctx.imageSmoothingEnabled = false;
+  }
   txt(HERO[P.who].name, 33, 6, 8.5, '#ffffff', 'left', 700);
   txt('✦ ' + HERO[P.who].power, 33, 17, 6, '#ffe9a8', 'left', 600);
   const hy = avail.length > 1 ? 48 : 33;
@@ -2337,7 +2647,7 @@ function drawDialog() {
   ctx.save(); ctx.scale(KS, KS); rr(ctx, x, y, w, h, 7, 'rgba(255,250,242,.97)', 'rgba(60,30,50,.35)'); ctx.restore();
   if (hasP) {
     ctx.save(); ctx.scale(KS, KS); rr(ctx, x + 6, y + 6, 40, 40, 5, '#f1e4d4', null); ctx.restore();
-    ctx.imageSmoothingEnabled = false; ctx.drawImage(portrait(line.who), (x + 6) * KS, (y + 6) * KS, 40 * KS, 40 * KS);
+    ctx.imageSmoothingEnabled = settings.style === 'toon'; ctx.drawImage(heroPortrait(line.who), (x + 6) * KS, (y + 6) * KS, 40 * KS, 40 * KS); ctx.imageSmoothingEnabled = false;
     txt(HERO[line.who].name, x + 52, y + 6, 7, '#c2185b', 'left', 700, UIF, false);
   }
   const tx = hasP ? x + 52 : x + 10, tw = w - (hasP ? 60 : 20);
@@ -2468,8 +2778,10 @@ function updateTouchLabels() {
   $('abilLbl').textContent = POWER_SHORT[P.who];
   const avail = ORDER.filter(w => save.have[w]), next = avail[(avail.indexOf(P.who) + 1) % avail.length];
   const c = $('bSwap').querySelector('canvas'), c2 = c.getContext('2d');
-  c2.clearRect(0, 0, 20, 20); c2.imageSmoothingEnabled = false;
-  if (avail.length > 1) c2.drawImage(portrait(next), 0, 0); else { c2.fillStyle = 'rgba(255,255,255,.5)'; c2.font = '700 12px sans-serif'; c2.textAlign = 'center'; c2.fillText('⇄', 10, 15); }
+  const toon = settings.style === 'toon';
+  c.style.imageRendering = toon ? 'auto' : 'pixelated';
+  c2.clearRect(0, 0, 60, 60); c2.imageSmoothingEnabled = toon;
+  if (avail.length > 1) c2.drawImage(heroPortrait(next), 0, 0, 60, 60); else { c2.fillStyle = 'rgba(255,255,255,.5)'; c2.font = '700 36px sans-serif'; c2.textAlign = 'center'; c2.fillText('⇄', 30, 45); }
 }
 function startNew() {
   save = freshSave(); for (const k in RT) delete RT[k];
@@ -2506,6 +2818,22 @@ $('btnHow').onclick = () => { howFrom = 'titleMenu'; showOnly('howMenu'); };
 $('btnHow2').onclick = () => { howFrom = 'pauseMenu'; showOnly('howMenu'); };
 $('btnHowBack').onclick = () => showOnly(howFrom);
 $('btnSound').onclick = $('btnSound2').onclick = () => { audioUnlock(); setSound(!settings.sound); };
+function buildTitlePortraits() {
+  const pr = $('portraits'), toon = settings.style === 'toon';
+  pr.innerHTML = '';
+  ORDER.forEach(w => {
+    const c = newCanvas(toon ? 64 : 20, toon ? 64 : 20);
+    c.getContext('2d').drawImage(toon ? toonPortrait(w, false) : portrait(w, false), 0, 0);
+    c.style.imageRendering = toon ? 'auto' : 'pixelated';
+    pr.appendChild(c);
+  });
+}
+function setStyle(st) {
+  settings.style = st === 'toon' ? 'toon' : 'pixel'; saveJSON(SETTINGS_KEY, settings);
+  document.querySelectorAll('#btnStyle,#btnStyle2').forEach(b => b.textContent = 'Characters: ' + (settings.style === 'toon' ? 'Cartoon' : 'Pixel'));
+  buildTitlePortraits(); updateTouchLabels();
+}
+$('btnStyle').onclick = $('btnStyle2').onclick = () => setStyle(settings.style === 'toon' ? 'pixel' : 'toon');
 $('btnResume').onclick = closePause;
 $('btnMapP').onclick = () => { showOnly(null); state.mode = 'map'; };
 $('btnReset').onclick = () => { state.Z.boxes.forEach(respawnBox); closePause(); toast('Boxes are back where they started.'); };
@@ -2561,12 +2889,14 @@ function updateWorld() {
 }
 function render() {
   g.setTransform(1, 0, 0, 1, 0, 0);
+  deferred.length = 0;
   if (state.mode === 'title' || !state.Z) drawTitleScene();
   else if (state.mode === 'ending') drawEnding();
-  else { drawWorld(); if (state.mode === 'map') drawMapPixels(); else drawHudPixels(); }
-  if (state.fade) { const f = state.fade, a = f.t < f.dur ? f.t / f.dur : 1 - (f.t - f.dur) / f.dur; g.fillStyle = `rgba(10,6,14,${clamp(a, 0, 1)})`; g.fillRect(0, 0, VW, VH); }
+  else { drawWorld(); if (state.mode === 'map') { deferred.length = 0; drawMapPixels(); } else drawHudPixels(); }
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(buf, 0, 0, cv.width, cv.height);
+  if (deferred.length) drawDeferred();
+  if (state.fade) { const f = state.fade, a = f.t < f.dur ? f.t / f.dur : 1 - (f.t - f.dur) / f.dur; ctx.fillStyle = `rgba(10,6,14,${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, cv.width, cv.height); }
   if (state.mode === 'ending') endingText();
   else if (state.mode !== 'title' && state.Z) drawHudText();
 }
@@ -2587,9 +2917,8 @@ function frame(now) {
   HEART_TOTAL = totalHearts();
   document.title = CONFIG.title.replace('&', '&') + ': A Love Quest';
   $('gameSub').textContent = CONFIG.subtitle;
-  const pr = $('portraits');
-  ORDER.forEach(w => { const c = newCanvas(20, 20); c.getContext('2d').drawImage(portrait(w), 0, 0); pr.appendChild(c); });
   setSound(settings.sound);
+  setStyle(settings.style);
   $('btnContinue').hidden = !loadSave();
   updateTouchLabels();
   layout();
