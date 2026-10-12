@@ -131,7 +131,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
     <div class="verstamp">
       Last updated: <b id="lastUpdated">October 12, 2026</b>
       <span class="vsep">·</span>
-      <span id="verNote">Phones no longer zoom in when you double-tap</span>
+      <span id="verNote">Katherine without sunglasses (pixel); cartoon feet now step forward</span>
     </div>
   </div>
 </div>
@@ -529,8 +529,8 @@ const HUMANS = {
     sleeve: '#f7f4ee', sleeveD: '#d8d1c3', skin: '#f8d5bd', skinD: '#e3ac90',
     pants: '#867476', pantsD: '#6b5c5e', shoe: '#1c1c20', sole: '#4a4a50', legW: 4, flare: 1,
     rows: [
-      '....qqQqqq......',
-      '...hqqqqqqqh....',
+      '.....hhhh.......',
+      '...hhhHHHhhh....',
       '..hhHHHHhhhhh...',
       '..hhHHhhhhhhhh..',
       '..hhhhhhhHHhhh..',
@@ -832,7 +832,7 @@ function toonHuman(c, H, who, wed, pose, t) {
   // 3/4 view facing right: the NEAR arm and leg are on the left (-x) and drawn on top;
   // the far ones tuck in behind the body on the right, the side the face is turned toward
   let fN = [-4, 0], fR = [4, 0];
-  if (run) { fN = [-3 + 6 * Math.sin(p), Math.max(0, -Math.cos(p)) * 6]; fR = [3 - 6 * Math.sin(p), Math.max(0, Math.cos(p)) * 6]; }
+  if (run) { fN = [-3 + 6 * Math.sin(p), Math.max(0, Math.cos(p)) * 6]; fR = [3 - 6 * Math.sin(p), Math.max(0, -Math.cos(p)) * 6]; }
   else if (pose === 'jump') { fN = [2, 7]; fR = [6, 3]; }
   else if (pose === 'fall') { fN = [-6, 4]; fR = [7, 2]; }
   else if (pose === 'swing') { fN = [-2, 2]; fR = [4, 0]; }
