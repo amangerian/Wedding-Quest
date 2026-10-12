@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Alex &amp; Katherine: A Love Quest</title>
 <meta name="description" content="A tiny metroidvania for our wedding — from College Park to Bethesda to the birding trail, with BA and Mikey along for the ride.">
 <meta name="theme-color" content="#1b1420">
@@ -22,6 +22,10 @@
   :root{ --bg:#140f17; --panel:rgba(28,20,32,.94); --line:#3a2c40;
          --text:#f6eef3; --text-dim:#bba9b6; --accent:#ff6f91; --accent2:#ffd166; }
 }
+/* no double-tap or pinch zoom anywhere: iOS checks each element, so set it on all of them */
+#app,#app *,#touch,#touch *,#topbar,#topbar *{touch-action:none}
+.overlay,.overlay *{touch-action:manipulation}
+*{-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#0d0a10;overflow:hidden;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiased}
@@ -127,7 +131,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
     <div class="verstamp">
       Last updated: <b id="lastUpdated">October 12, 2026</b>
       <span class="vsep">·</span>
-      <span id="verNote">Cartoon character option, bronde hair, wedding outfits in Phase III</span>
+      <span id="verNote">Phones no longer zoom in when you double-tap</span>
     </div>
   </div>
 </div>
@@ -283,6 +287,26 @@ function pollPad() {
   setSrc('pad', 'pause', bt(9)); setSrc('pad', 'ok', bt(0));
 }
 function clearHits() { BTN.forEach(b => hit[b] = false); }
+
+/* ---- keep phones from zooming the page (double-tap, pinch), and undo it if they do ---- */
+(() => {
+  let lastEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now(), inMenu = e.target.closest && e.target.closest('.card');
+    if (now - lastEnd < 350 && !inMenu) e.preventDefault();      // second tap of a double-tap
+    lastEnd = now;
+  }, { passive: false });
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 && !(e.target.closest && e.target.closest('.card'))) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+  const vv = window.visualViewport, meta = document.querySelector('meta[name="viewport"]');
+  if (vv && meta) vv.addEventListener('resize', () => {
+    if (vv.scale <= 1.01) return;
+    const base = meta.getAttribute('content');                       // nudging the viewport tag makes iOS snap back to 100%
+    meta.setAttribute('content', base.replace('maximum-scale=1.0', 'maximum-scale=1.01'));
+    setTimeout(() => meta.setAttribute('content', base), 60);
+  });
+})();
 
 /* ===== layout: fit 16:9 game, reserve room for touch controls in portrait ===== */
 function layout() {
@@ -805,19 +829,23 @@ function toonHuman(c, H, who, wed, pose, t) {
   const run = pose === 'run', p = t * 0.32;
   const bob = run ? Math.abs(Math.sin(p)) * 2 : pose === 'idle' ? Math.sin(t * 0.07) * 0.7 : 0;
   const top = tTop + bob, hc = top + 3 + hH / 2, sx = tw / 2 - 3, shY = top - 4;
-  let fF = [5, 0], fB = [-5, 0];
-  if (run) { fF = [1 + 6 * Math.sin(p), Math.max(0, -Math.cos(p)) * 6]; fB = [-1 - 6 * Math.sin(p), Math.max(0, Math.cos(p)) * 6]; }
-  else if (pose === 'jump') { fF = [7, 7]; fB = [-4, 3]; }
-  else if (pose === 'fall') { fF = [6, 2]; fB = [-6, 5]; }
-  else if (pose === 'swing') { fF = [3, 1]; fB = [-3, 3]; }
-  let hF = [sx + 3, shY - 26], hB = [-sx - 3, shY - 26];
-  if (run) { hF = [sx + 1 - 7 * Math.sin(p), shY - 24]; hB = [-sx - 1 + 7 * Math.sin(p), shY - 24]; }
-  else if (pose === 'jump') { hF = [sx + 7, shY + 12]; hB = [-sx - 7, shY + 10]; }
-  else if (pose === 'fall') { hF = [sx + 10, shY - 4]; hB = [-sx - 10, shY - 2]; }
-  else if (pose === 'swing') hF = [sx - 1, shY + 30];
-  else if (pose === 'abil') { hF = K ? [sx + 10, shY - 13] : [sx + 18, shY - 3]; if (K) hB = [sx + 3, shY - 15]; }
+  // 3/4 view facing right: the NEAR arm and leg are on the left (-x) and drawn on top;
+  // the far ones tuck in behind the body on the right, the side the face is turned toward
+  let fN = [-4, 0], fR = [4, 0];
+  if (run) { fN = [-3 + 6 * Math.sin(p), Math.max(0, -Math.cos(p)) * 6]; fR = [3 - 6 * Math.sin(p), Math.max(0, Math.cos(p)) * 6]; }
+  else if (pose === 'jump') { fN = [2, 7]; fR = [6, 3]; }
+  else if (pose === 'fall') { fN = [-6, 4]; fR = [7, 2]; }
+  else if (pose === 'swing') { fN = [-2, 2]; fR = [4, 0]; }
+  const shN = [-sx, shY], shR = [sx - 3, shY];
+  let hN = [-sx - 2, shY - 26], hR = [sx + 1, shY - 25];
+  if (run) { hN = [-sx + 3 - 7 * Math.sin(p), shY - 24]; hR = [sx - 3 + 7 * Math.sin(p), shY - 24]; }
+  else if (pose === 'jump') { hN = [-sx - 7, shY + 11]; hR = [sx + 6, shY + 10]; }
+  else if (pose === 'fall') { hN = [-sx - 9, shY - 2]; hR = [sx + 9, shY - 4]; }
+  else if (pose === 'swing') hN = [-sx - 7, shY + 31];
+  else if (pose === 'abil') { if (K) { hN = [sx + 7, shY - 15]; hR = [sx + 10, shY - 13]; } else hN = [sx + 14, shY - 3]; }
   const bouquet = K && wed && pose !== 'abil' && pose !== 'swing';
-  if (bouquet) { hF = [8, legs + 8 + bob]; hB = [0, legs + 7 + bob]; }
+  if (bouquet) { hN = [2, legs + 7 + bob]; hR = [8, legs + 9 + bob]; }
+  const farInFront = bouquet || (K && pose === 'abil');   // both hands busy in front of the body
   const sleeveFull = !(who === 'alex' && !wed), armCol = (K && wed) ? P.skin : sleeveFull ? P.top : P.skin;
   const arm = (sh, h, back) => {
     cap(sh[0], sh[1], h[0], h[1], aw, back && armCol !== P.skin ? P.topD : armCol);
@@ -833,18 +861,18 @@ function toonHuman(c, H, who, wed, pose, t) {
     c.quadraticCurveTo(X(-tw * 1.0 - fl), Y(legs * 0.9), X(-tw * 0.95 - fl * 1.5), Y(5)); c.lineTo(X(-2), Y(8));
     c.quadraticCurveTo(X(tw * 0.2), Y(legs), X(hW * 0.3), Y(hc + hH * 0.42)); c.closePath(); c.fillStyle = '#ffffff'; c.fill(); c.restore();
   }
-  arm([-sx, shY], hB, true);
+  if (!farInFront) arm(shR, hR, true);
   // legs or skirt
   if (K && wed) {
     const sw = run ? Math.sin(p) * 3 : 0;
-    if (run) { oval(fF[0] + 2, fF[1] + 1.5, 4, 2.4, P.shoes); oval(fB[0] + 2, fB[1] + 1.5, 4, 2.4, P.shoes); }
+    if (run) { oval(fR[0] + 2, fR[1] + 1.5, 4, 2.4, P.shoes); oval(fN[0] + 2, fN[1] + 1.5, 4, 2.4, P.shoes); }
     c.beginPath(); c.moveTo(X(-tw * 0.42), Y(legs + torso * 0.1 + bob)); c.lineTo(X(tw * 0.42), Y(legs + torso * 0.1 + bob));
     c.quadraticCurveTo(X(tw * 0.75), Y(legs * 0.5), X(tw * 1.0 + sw), Y(2)); c.quadraticCurveTo(X(sw * 0.5), Y(-1), X(-tw * 1.0 + sw), Y(2));
     c.quadraticCurveTo(X(-tw * 0.75), Y(legs * 0.5), X(-tw * 0.42), Y(legs + torso * 0.1 + bob)); c.closePath(); F(P.top);
     [-0.5, 0, 0.5].forEach(i => { c.beginPath(); c.moveTo(X(tw * 0.18 * i), Y(legs + bob)); c.lineTo(X(tw * 0.8 * i + sw * 0.6), Y(4)); line(P.topD, 1); });
   } else {
-    for (const [f, back] of [[fB, true], [fF, false]]) {
-      const hx = back ? -4 : 4;
+    for (const [f, back] of [[fR, true], [fN, false]]) {
+      const hx = back ? 4 : -4;
       cap(hx, legs + bob, f[0], f[1] + 3.5, lw, back ? P.pantsD : P.pants);
       oval(f[0] + 2.2, f[1] + 1.8, lw * 0.62, 2.8, P.shoes);
     }
@@ -881,7 +909,7 @@ function toonHuman(c, H, who, wed, pose, t) {
     c.beginPath(); toonRR(c, X(-tw * 0.66), Y(legs + bob + torso * 0.3), L(10), L(7.5), L(2.4)); F('#1d1d20');
   }
   // head
-  if (!K) for (const s of [-1, 1]) oval(s * hW * 0.5, hc - hH * 0.02, hW * 0.09, hH * 0.12, P.skin);
+  if (!K) oval(-hW * 0.47, hc - hH * 0.02, hW * 0.09, hH * 0.12, P.skin);
   oval(0, hc, hW / 2, hH / 2, P.skin);
   if (!K) {
     c.beginPath(); c.moveTo(X(-hW * 0.52), Y(hc + hH * 0.02)); c.quadraticCurveTo(X(-hW * 0.62), Y(hc + hH * 0.56), X(-hW * 0.1), Y(hc + hH * 0.6));
@@ -908,17 +936,19 @@ function toonHuman(c, H, who, wed, pose, t) {
     const gw = hW * 0.31, gh = hH * 0.2;
     for (const s of [-1, 1]) { c.beginPath(); toonRR(c, X(s * ex + fx - gw / 2), Y(ey + gh * 0.55), L(gw), L(gh), L(gh * 0.3)); c.fillStyle = 'rgba(225,240,255,0.35)'; c.fill(); line('#141418', 1.6); }
     c.beginPath(); c.moveTo(X(-ex + fx + gw / 2), Y(ey + gh * 0.2)); c.lineTo(X(ex + fx - gw / 2), Y(ey + gh * 0.2)); line('#141418', 1.4);
+    c.beginPath(); c.moveTo(X(-ex + fx - gw / 2), Y(ey + gh * 0.25)); c.lineTo(X(-hW * 0.46), Y(ey + gh * 0.05)); line('#141418', 1.2);
   }
   for (const s of [-1, 1]) oval(s * hW * 0.3 + fx, hc - hH * 0.15, hW * 0.09, hH * 0.05, 'rgba(240,140,140,0.45)', 0, true);
   c.beginPath(); c.arc(X(fx), Y(hc - hH * 0.17), L(hW * 0.11), 0.2 * Math.PI, 0.8 * Math.PI); line('#9a4a44', 1.4);
   // front arm, then whatever the hands are holding
-  arm([sx, shY], hF, false);
+  if (farInFront) arm(shR, hR, true);
   if (pose === 'abil' && K) {
     const bx = sx + 2, by = shY - 15;
     c.beginPath(); toonRR(c, X(bx), Y(by + 1), L(17), L(2.4), L(1)); F('#b8c0c8');
     c.save(); c.translate(X(bx + 2), Y(by + 1)); c.rotate(-0.25); c.beginPath(); toonRR(c, 0, -L(11), L(14), L(11), L(1.5)); F('#2d3540');
     c.fillStyle = '#62f08a'; for (let i = 0; i < 3; i++) c.fillRect(L(2), -L(9 - i * 3), L(4 + ((t >> 3) + i) % 3 * 2.5), L(1.2)); c.restore();
   }
+  arm(shN, hN, false);
   if (bouquet) {
     const bx = 4, by = legs + 9 + bob;
     [[-3.5, -1, 2.6], [3.5, -1.2, 2.6], [0, -2.6, 2.4]].forEach(([dx, dy, r]) => oval(bx + dx, by + dy - 1.5, r * 1.3, r * 0.7, '#6a9a5a', dx * 0.2, true));
@@ -2434,8 +2464,8 @@ function drawPlayer() {
   if (P.dead) return;
   if (P.inv && (state.t >> 2) % 2) return;
   const gd = state.grav, [pose, fr] = heroPose();
-  const toon = settings.style === 'toon', hy = toon && P.rope ? 2 : 9;
-  const hand = { x: pcx() + P.facing * (toon ? 3 : 4), y: gd > 0 ? P.y + hy : P.y + P.h - hy };
+  const toon = settings.style === 'toon', hy = toon ? (P.rope ? 2 : 12) : 9, hx = toon ? (P.rope ? -6 : 8) : 4;
+  const hand = { x: pcx() + P.facing * hx, y: gd > 0 ? P.y + hy : P.y + P.h - hy };
   if (P.rope) {
     const a = P.rope.a;
     g.strokeStyle = '#2e3238'; g.lineWidth = 2; g.beginPath(); g.moveTo(hand.x, hand.y); g.lineTo(a.x, a.y); g.stroke();
