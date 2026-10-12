@@ -60,6 +60,14 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
 #topbar[hidden]{display:none}
 #rotateHint{margin-top:18px;color:rgba(255,255,255,.55);font:500 13px var(--sans);text-align:center;padding:0 24px}
 #rotateHint[hidden]{display:none}
+#bDoor{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(14px,env(safe-area-inset-bottom)) + 16px);z-index:6;
+  min-height:52px;min-width:150px;padding:8px 22px;border-radius:26px;border:2px solid #fff;cursor:pointer;
+  background:#ffd166;color:#2a1f2b;font:700 17px var(--sans);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);touch-action:none;animation:doorPulse 1.4s ease-in-out infinite}
+#bDoor small{font:500 11px var(--sans);opacity:.8;max-width:220px;text-align:center}
+#bDoor[hidden]{display:none}
+#bDoor:active{background:#ffe7a3}
+@keyframes doorPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
 
 /* ---- menus ---- */
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;
@@ -114,6 +122,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
     <div class="tb" id="bJump" data-b="jump"><span class="ic">⤒</span>Jump</div>
   </div>
 </div>
+<button id="bDoor" hidden aria-label="Enter door"><span>Enter door</span><small id="doorLbl"></small></button>
 <div id="topbar" hidden><button id="bMap" aria-label="Map">Map</button><button id="bPause" aria-label="Pause">❚❚</button></div>
 
 <div class="overlay" id="titleMenu">
@@ -131,7 +140,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
     <div class="verstamp">
       Last updated: <b id="lastUpdated">October 12, 2026</b>
       <span class="vsep">·</span>
-      <span id="verNote">Katherine without sunglasses (pixel); cartoon feet now step forward</span>
+      <span id="verNote">Clear "Enter door" prompts on phone and computer</span>
     </div>
   </div>
 </div>
@@ -146,6 +155,7 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
         <tr><td>Jump</td><td>⤒ &nbsp;/&nbsp; Space, Z or ↑</td></tr>
         <tr><td>Power</td><td>✦ &nbsp;/&nbsp; X or Shift</td></tr>
         <tr><td>Swap hero</td><td>Face button &nbsp;/&nbsp; C, Q or Tab</td></tr>
+        <tr><td>Doors</td><td>Enter &nbsp;/&nbsp; tap the gold Enter door button</td></tr>
         <tr><td>Map</td><td>M &nbsp;·&nbsp; Pause: Esc or P</td></tr>
       </table>
       <p><b>Alex</b> — swing the stethoscope from glowing rings (✦ to grab, Jump to let go, ↑ ↓ to reel).<br>
@@ -287,6 +297,13 @@ function pollPad() {
   setSrc('pad', 'pause', bt(9)); setSrc('pad', 'ok', bt(0));
 }
 function clearHits() { BTN.forEach(b => hit[b] = false); }
+document.getElementById('bDoor').addEventListener('pointerdown', e => { e.preventDefault(); audioUnlock(); hit.ok = true; });
+let doorShown = false, doorText = '';
+function updateDoorButton() {
+  const d = state.doorHere, show = !!(isTouch && state.mode === 'play' && d && !state.fade);
+  if (show !== doorShown) { document.getElementById('bDoor').hidden = !show; doorShown = show; }
+  if (show && d.label !== doorText) { doorText = d.label; document.getElementById('doorLbl').textContent = d.label; }
+}
 
 /* ---- keep phones from zooming the page (double-tap, pinch), and undo it if they do ---- */
 (() => {
@@ -325,6 +342,9 @@ function layout() {
   KS = clamp(Math.ceil(s * dpr), 1, 8);
   if (cv.width !== VW * KS) { cv.width = VW * KS; cv.height = VH * KS; }
   ctx.imageSmoothingEnabled = false;
+  const door = document.getElementById('bDoor');
+  if (isTouch && portrait) { door.style.top = Math.round(cv.getBoundingClientRect().bottom + 52) + 'px'; door.style.bottom = 'auto'; }
+  else { door.style.top = ''; door.style.bottom = ''; }
 }
 addEventListener('resize', () => layout());
 </script>
@@ -2643,9 +2663,11 @@ function drawHudText() {
     ctx.save(); ctx.scale(KS, KS); rr(ctx, VW / 2 - 132, y, 264, h, 5, 'rgba(255,250,240,.94)', 'rgba(0,0,0,.2)'); ctx.restore();
     lines.forEach((l, i) => txt(l, VW / 2, y + 4 + i * 9, 6.5, '#2a1f2b', 'center', 600, UIF, false));
   }
-  if (state.doorHere && state.mode === 'play') {
-    const d = state.doorHere, need = d.needs && !save.items[d.needs];
-    txt((need ? '▲ ' : '▲ ') + d.label, VW / 2, VH - 40, 7, need ? '#ffd6d6' : '#fff6c8', 'center', 700);
+  if (state.doorHere && state.mode === 'play' && !isTouch) {     // phones get the big Enter door button instead
+    const d = state.doorHere, y = VH - 50;
+    ctx.save(); ctx.scale(KS, KS); rr(ctx, VW / 2 - 86, y, 172, 26, 8, 'rgba(255,209,102,.96)', 'rgba(255,255,255,.9)'); ctx.restore();
+    txt('Press Enter to enter door', VW / 2, y + 4, 8, '#2a1f2b', 'center', 700, UIF, false);
+    txt(d.label, VW / 2, y + 15, 5.5, '#5a4a3a', 'center', 600, UIF, false);
   }
   if (state.toast) {
     const a = Math.min(1, state.toast.t / 15);
@@ -2816,7 +2838,7 @@ function updateTouchLabels() {
 function startNew() {
   save = freshSave(); for (const k in RT) delete RT[k];
   P.who = 'alex'; showOnly(null); state.mode = 'play'; setPlayChrome(true);
-  loadZone('umd'); persist(); layout();
+  loadZone('umd'); persist(); layout(); blurMenus();
 }
 function continueGame() {
   const s = loadSave(); if (!s) return startNew();
@@ -2825,7 +2847,7 @@ function continueGame() {
   showOnly(null); state.mode = 'play'; setPlayChrome(true);
   loadZone(save.zone, save.x != null ? { x: save.x, y: save.y } : null, { grav: save.grav || 1, who: P.who });
   state.card = { phase: state.Z.src.phase, t: 160 };
-  layout();
+  layout(); blurMenus();
 }
 function toTitle() {
   persist(); state.mode = 'title'; Music.stop(); setPlayChrome(false); showOnly('titleMenu');
@@ -2836,7 +2858,8 @@ function openPause() {
   state.mode = 'paused'; showOnly('pauseMenu');
   $('pauseStats').textContent = `${state.Z.name} · ${Object.keys(save.hearts).length}/${HEART_TOTAL} memories` + (save.items.binoculars ? ` · ${Object.keys(save.birds).length}/${BIRDS.length} birds` : '');
 }
-function closePause() { showOnly(null); state.mode = 'play'; }
+function blurMenus() { const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur(); }
+function closePause() { showOnly(null); state.mode = 'play'; blurMenus(); }
 let newArmed = 0, howFrom = 'titleMenu';
 $('btnNew').onclick = () => {
   audioUnlock();
@@ -2926,6 +2949,7 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(buf, 0, 0, cv.width, cv.height);
   if (deferred.length) drawDeferred();
+  updateDoorButton();
   if (state.fade) { const f = state.fade, a = f.t < f.dur ? f.t / f.dur : 1 - (f.t - f.dur) / f.dur; ctx.fillStyle = `rgba(10,6,14,${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, cv.width, cv.height); }
   if (state.mode === 'ending') endingText();
   else if (state.mode !== 'title' && state.Z) drawHudText();
