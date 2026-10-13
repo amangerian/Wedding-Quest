@@ -15,12 +15,13 @@
   --bg:#f4ede4; --panel:rgba(255,250,244,.94); --line:#e3d6c6;
   --text:#2a1f2b; --text-dim:#6d5c68; --accent:#c2185b; --accent2:#e0a100;
   --btn:rgba(255,255,255,.18); --btn-line:rgba(255,255,255,.45);
+  --accent-soft:rgba(194,24,91,.1);
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;
   --serif:ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif;
 }
 @media (prefers-color-scheme: dark){
   :root{ --bg:#140f17; --panel:rgba(28,20,32,.94); --line:#3a2c40;
-         --text:#f6eef3; --text-dim:#bba9b6; --accent:#ff6f91; --accent2:#ffd166; }
+         --text:#f6eef3; --text-dim:#bba9b6; --accent:#ff6f91; --accent2:#ffd166; --accent-soft:rgba(255,111,145,.14); }
 }
 /* no double-tap or pinch zoom anywhere: iOS checks each element, so set it on all of them */
 #app,#app *,#touch,#touch *,#topbar,#topbar *{touch-action:none}
@@ -91,6 +92,40 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
 .card .help td:first-child{white-space:nowrap;color:var(--text);font-weight:600}
 .verstamp{margin-top:16px;font-size:.72rem;color:var(--text-dim)}
 .verstamp .vsep{margin:0 .4em}
+/* ---- leaderboard, guestbook, finish card ---- */
+.card.wide{max-width:520px}
+.overlay.soft{background:linear-gradient(rgba(10,6,12,.1),rgba(10,6,12,.6))}
+.form{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:6px}
+.form[hidden]{display:none}
+.form input,.form textarea{font:400 16px var(--sans);color:var(--text);background:transparent;border:1px solid var(--line);border-radius:12px;
+  padding:11px 12px;width:100%;-webkit-user-select:text;user-select:text}
+.form textarea{resize:vertical;min-height:88px;line-height:1.4}
+.form input:focus,.form textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.form .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.form .row .mb{padding:0 26px}
+.form .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.card button.mb:disabled{opacity:.55;cursor:default}
+.dim{color:var(--text-dim);font-size:.8rem}
+.status{font-size:.9rem;color:var(--text-dim);min-height:1.3em;margin:4px 0 8px}
+.status.err{color:var(--accent);font-weight:600}
+.status.good{color:var(--text);font-weight:600}
+.board{width:100%;border-collapse:collapse;font-size:.92rem;text-align:left}
+.board th{font-size:.7rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;padding:4px 6px 6px;border-bottom:1px solid var(--line)}
+.board td{padding:8px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.board .rk{width:2.2em;text-align:center;white-space:nowrap}
+.board .nm{overflow-wrap:anywhere;font-weight:600}
+.board .num{text-align:right;white-space:nowrap}
+.board tr.me td{background:var(--accent-soft)}
+.board tr.gap td{border-bottom:0;text-align:center;color:var(--text-dim);padding:0}
+.board-wrap{max-height:52vh;overflow:auto;margin:0 -4px;padding:0 4px}
+.board-wrap + .dim{margin-top:10px}
+.book{display:flex;flex-direction:column;gap:8px;text-align:left;margin-top:6px}
+.note{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.note .who{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.78rem;color:var(--text-dim)}
+.note .who b{color:var(--text);font-size:.95rem;overflow-wrap:anywhere}
+.note p{margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.95rem;line-height:1.45}
+.empty{color:var(--text-dim);padding:14px 0;font-size:.92rem}
+.empty .mb{margin-top:10px;padding:0 20px}
 #portraits{display:flex;justify-content:center;gap:6px;margin:6px 0 2px}
 #portraits canvas{width:64px;height:64px;image-rendering:pixelated}
 @media (max-height:520px){
@@ -133,14 +168,16 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
     <div class="menu">
       <button class="mb primary" id="btnContinue" hidden>Continue</button>
       <button class="mb" id="btnNew">New Game</button>
+      <button class="mb" id="btnBoard" hidden>Leaderboard</button>
+      <button class="mb" id="btnBook" hidden>Guestbook</button>
       <button class="mb" id="btnHow">How to Play</button>
       <button class="mb" id="btnSound">Sound: On</button>
       <button class="mb" id="btnStyle">Characters: Pixel</button>
     </div>
     <div class="verstamp">
-      Last updated: <b id="lastUpdated">October 12, 2026</b>
+      Last updated: <b id="lastUpdated">October 13, 2026</b>
       <span class="vsep">·</span>
-      <span id="verNote">Clear "Enter door" prompts on phone and computer</span>
+      <span id="verNote">Leaderboard and guestbook</span>
     </div>
   </div>
 </div>
@@ -185,6 +222,48 @@ body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiase
   </div>
 </div>
 
+<div class="overlay" id="boardMenu" hidden>
+  <div class="card wide">
+    <h1 style="font-size:1.6rem">Leaderboard</h1>
+    <p class="sub">Most memories ♥ and birds found, then fastest time</p>
+    <div id="boardBody" aria-live="polite"></div>
+    <div class="menu" style="margin-top:12px"><button class="mb primary" id="btnBoardBack">Back</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="bookMenu" hidden>
+  <div class="card wide">
+    <h1 style="font-size:1.6rem">Guestbook</h1>
+    <p class="sub" id="bookSub">Leave a note for the happy couple</p>
+    <form class="form" id="bookForm" novalidate>
+      <input id="bookName" maxlength="40" placeholder="Your name" autocomplete="name" enterkeyhint="next" aria-label="Your name">
+      <textarea id="bookText" maxlength="500" rows="3" placeholder="Your message" aria-label="Your message"></textarea>
+      <input class="hp" id="bookHp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="row"><span class="dim" id="bookCount">0 / 500</span><button class="mb primary" id="btnPost" type="submit">Post</button></div>
+    </form>
+    <p class="status" id="bookStatus" role="status"></p>
+    <div class="book" id="bookList"></div>
+    <div class="menu" style="margin-top:12px"><button class="mb" id="btnBookBack" type="button">Back</button></div>
+  </div>
+</div>
+
+<div class="overlay soft" id="finishMenu" hidden>
+  <div class="card">
+    <h1 style="font-size:1.6rem">You did it!</h1>
+    <p class="sub" id="finishStats"></p>
+    <form class="form" id="finishForm" novalidate>
+      <input id="finishName" maxlength="40" placeholder="Your name" autocomplete="name" enterkeyhint="send" aria-label="Your name">
+      <button class="mb primary" id="btnSubmitScore" type="submit">Add me to the leaderboard</button>
+    </form>
+    <p class="status" id="finishStatus" role="status"></p>
+    <div class="menu">
+      <button class="mb primary" id="btnFinishBoard" type="button" hidden>See the leaderboard</button>
+      <button class="mb" id="btnFinishBook" type="button">Sign the guestbook</button>
+      <button class="mb" id="btnFinishTitle" type="button">Back to title</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 /* =========================================================================
@@ -195,6 +274,9 @@ const CONFIG = {
   subtitle: 'A love quest in three phases',
   weddingDate: '',            // e.g. 'June 6, 2027' — shown on the ending screen if filled in
   endingLine: 'Thank you for celebrating with us!',
+  // Leaderboard + guestbook: the address of the Cloudflare Worker in cloudflare/ (see SETUP.md),
+  // e.g. 'https://wedding-quest-api.yourname.workers.dev'. Leave blank to hide both.
+  apiBase: '',
   phases: [
     { name: 'Phase I',   place: 'College Park',  sub: 'University of Maryland' },
     { name: 'Phase II',  place: 'Bethesda',      sub: 'Our first home together' },
@@ -248,12 +330,13 @@ function setSrc(kind, b, v) {
   held[b] = !!(src.key[b] || src.touch[b] || src.pad[b]);
   if (held[b] && !was) hit[b] = true;
 }
+const typing = e => !!e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
 addEventListener('keydown', e => {
-  const b = KEYMAP[e.code]; if (!b) return;
+  const b = KEYMAP[e.code]; if (!b || typing(e)) return;
   if (e.target && e.target.tagName === 'BUTTON' && (b === 'jump' || b === 'ok')) return;
   e.preventDefault(); if (!e.repeat) setSrc('key', b, true); audioUnlock();
 });
-addEventListener('keyup', e => { const b = KEYMAP[e.code]; if (b) { e.preventDefault(); setSrc('key', b, false); } });
+addEventListener('keyup', e => { const b = KEYMAP[e.code]; if (b) { if (!typing(e)) e.preventDefault(); setSrc('key', b, false); } });
 addEventListener('blur', () => BTN.forEach(b => { src.key[b] = false; src.touch[b] = false; held[b] = false; }));
 
 // touch buttons
@@ -492,7 +575,7 @@ setInterval(() => Music.tick(), 30);
 /* =========================================================================
    SPRITES — pixel art written as strings, turned into canvases at startup.
    Characters are drawn from the photos: Alex (brown hair, glasses, navy polo,
-   khakis, stethoscope), Katherine (strawberry-blonde hair, sunglasses up,
+   khakis, stethoscope), Katherine (bronde hair, blue eyes, sunglasses up,
    white cardigan, black crossbody bag, mauve wide-leg pants), BA (tuxedo,
    white chin/bib/belly, white back socks, green-gold eyes), Mikey (orange
    tabby, cream chin and paws).
@@ -544,7 +627,7 @@ const HUMANS = {
     ]
   },
   katherine: {
-    pal: { h: '#a98058', H: '#d3ae7c', d: '#7d5a38', s: '#f8d5bd', S: '#e3ac90', e: '#4a3a30', m: '#c9606a', r: '#f2a7a2',
+    pal: { h: '#a98058', H: '#d3ae7c', d: '#7d5a38', s: '#f8d5bd', S: '#e3ac90', e: '#3b78c4', m: '#c9606a', r: '#f2a7a2',
            q: '#2b2522', Q: '#7a665c', w: '#f7f4ee', W: '#d8d1c3', i: '#ffffff', b: '#1c1c20' },
     sleeve: '#f7f4ee', sleeveD: '#d8d1c3', skin: '#f8d5bd', skinD: '#e3ac90',
     pants: '#867476', pantsD: '#6b5c5e', shoe: '#1c1c20', sole: '#4a4a50', legW: 4, flare: 1,
@@ -949,7 +1032,11 @@ function toonHuman(c, H, who, wed, pose, t) {
   const ey = hc - hH * 0.04, ex = hW * 0.2, er = hH * 0.085, blink = (t % 230) > 223;
   for (const s of [-1, 1]) {
     if (blink) { c.beginPath(); c.moveTo(X(s * ex + fx - er), Y(ey)); c.lineTo(X(s * ex + fx + er), Y(ey)); line('#2a1d16', 1.4); }
-    else { oval(s * ex + fx, ey, er * 0.8, er * 1.2, '#2a1d16', 0, true); oval(s * ex + fx + er * 0.25, ey + er * 0.4, er * 0.32, er * 0.32, '#ffffff', 0, true); }
+    else {
+      oval(s * ex + fx, ey, er * 0.8, er * 1.2, K ? '#3b78c4' : '#2a1d16', 0, true);
+      if (K) oval(s * ex + fx + er * 0.1, ey - er * 0.05, er * 0.42, er * 0.62, '#1a2a44', 0, true);   // blue iris, dark pupil
+      oval(s * ex + fx + er * 0.25, ey + er * 0.4, er * 0.32, er * 0.32, '#ffffff', 0, true);
+    }
     c.beginPath(); c.moveTo(X(s * ex + fx - er * 1.1), Y(ey + hH * 0.14)); c.lineTo(X(s * ex + fx + er * 1.1), Y(ey + hH * 0.15)); line(K ? P.hairD : '#3a2414', 1.2);
   }
   if (!K) {
@@ -1524,7 +1611,7 @@ const ZONES = {
         ...rep(';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;', 4),
         F30, F30, F30
       ],
-      [ // B4 — Purple Line construction & the shelter
+      [ // B4 — Purple Line construction & the MSPCA
         ...rep(E30, 7),
         '......h.......................',
         '============..................',
@@ -1545,7 +1632,7 @@ const ZONES = {
       ]
     ],
     signs: {
-      '114,14': 'Animal Shelter — Adoption Day! One very large, very orange boy is waiting for a family.',
+      '114,14': 'MSPCA — Adoption Day! One very large, very orange boy is waiting for a family.',
       '7,17': 'Capital Crescent Trail. Birders welcome — binoculars strongly recommended.',
       '15,17': 'Madonna of the Trail (1929) — one of twelve along the old National Old Trails Road.',
       '23,17': 'Bethesda Station — home to one of the longest escalators in the Western Hemisphere.',
@@ -2202,7 +2289,7 @@ const JOIN_LINES = {
   ba: [['ba', 'Mrrp?'], ['', 'BA joined the family!'],
        ['', 'KNOCK IT OFF: press ✦ to swat things off shelves and ledges. Only BA can move them. They make great steps, and heavy things hold down switches.'],
        ['', 'Cats are small — they fit through pet doors and tiny tunnels that people can’t.']],
-  mikey: [['mikey', 'MRAOW.'], ['', 'Mikey joined the family!'],
+  mikey: [['mikey', 'MRAOW.'], ['', 'Mikey was adopted from the MSPCA and joined the family!'],
           ['', 'BUTT BUMP: press ✦ on the ground to dash butt-first through cracked rock, or press it in mid-air to slam straight down.']]
 };
 function totalHearts() { let n = 0; for (const id in ZONES) for (const sec of ZONES[id].sections) for (const r of sec) for (const c of r) if (c === 'h') n++; return n; }
@@ -2308,9 +2395,9 @@ function objective() {
   if (!save.have.katherine) return 'Climb McKeldin Library — someone is studying on the top floor.';
   if (!save.visited.bethesda) return 'Head east across campus to the College Park Metro and ride to Bethesda.';
   if (!save.have.ba) return 'Find your new apartment past Bethesda Row. Someone furry is waiting at home.';
-  if (!save.have.mikey) return 'Help BA open the balcony, then cross the Purple Line construction to the animal shelter.';
+  if (!save.have.mikey) return 'Help BA open the balcony, then cross the Purple Line construction to the MSPCA.';
   if (!save.items.binoculars) {
-    if (!(save.broken.bethesda || []).some(k => k.startsWith('105,') || k.startsWith('106,'))) return 'Mikey can slam through the cracked cover by the shelter — the tunnel leads back to the Metro.';
+    if (!(save.broken.bethesda || []).some(k => k.startsWith('105,') || k.startsWith('106,'))) return 'Mikey can slam through the cracked cover by the MSPCA — the tunnel leads back to the Metro.';
     return 'Ride the Metro back to College Park. Katherine left her binoculars at Lake Artemesia, east of the Metro.';
   }
   if (!save.visited.nature) return 'Back to Bethesda — the Capital Crescent Trail starts beside the Metro plaza.';
@@ -2442,7 +2529,8 @@ function drawEnemy(e) {
   }
 }
 // Phase III (the birding trail) and the ending: everyone is dressed for the wedding
-function outfitNow() { return state.mode !== 'title' && (state.mode === 'ending' || state.zoneId === 'nature'); }
+function outfitNow() { return state.mode !== 'title' && (endingMode() || state.zoneId === 'nature'); }
+const endingMode = () => state.mode === 'ending' || state.mode === 'finish';
 function heroPortrait(who) { const wed = outfitNow(); return settings.style === 'toon' ? toonPortrait(who, wed) : portrait(who, wed); }
 const deferred = [];        // cartoon heroes wait here and are drawn crisp after the pixel world is scaled up
 function drawDeferred() {
@@ -2815,16 +2903,17 @@ function endingText() {
   ctx.globalAlpha = fade(220); txt('Just Married', VW / 2, 40, 10, '#ffe9a8', 'center', 500, SERIF);
   if (CONFIG.weddingDate) { ctx.globalAlpha = fade(240); txt(CONFIG.weddingDate, VW / 2, 54, 7, '#ffffff', 'center', 600); }
   ctx.globalAlpha = fade(320);
-  const mins = Math.floor(save.time / 60), secs = String(Math.floor(save.time % 60)).padStart(2, '0');
-  txt(`${Object.keys(save.hearts).length} / ${HEART_TOTAL} memories  ·  ${Object.keys(save.birds).length} / ${BIRDS.length} birds  ·  ${mins}:${secs}  ·  ${save.oops} oopses`, VW / 2, 66, 6, '#ffffff', 'center', 600);
+  txt(`${Object.keys(save.hearts).length} / ${HEART_TOTAL} memories  ·  ${Object.keys(save.birds).length} / ${BIRDS.length} birds  ·  ${fmtTime(save.time)}  ·  ${save.oops} oopses`, VW / 2, 66, 6, '#ffffff', 'center', 600);
   ctx.globalAlpha = fade(420); txt(CONFIG.endingLine, VW / 2, 196, 8, '#ffffff', 'center', 600, SERIF);
-  ctx.globalAlpha = fade(560) * (state.t % 60 < 40 ? 1 : 0.4); txt('Press any button', VW / 2, 207, 5.5, '#fff2c0', 'center', 600);
+  if (state.mode === 'ending') {           // hidden once the finish card is up
+    ctx.globalAlpha = fade(560) * (state.t % 60 < 40 ? 1 : 0.4); txt('Press any button', VW / 2, 207, 5.5, '#fff2c0', 'center', 600);
+  }
   ctx.restore();
 }
 
 /* ---------- menus ---------- */
 const $ = id => document.getElementById(id);
-function showOnly(id) { ['titleMenu', 'howMenu', 'pauseMenu'].forEach(k => $(k).hidden = k !== id); }
+function showOnly(id) { ['titleMenu', 'howMenu', 'pauseMenu', 'boardMenu', 'bookMenu', 'finishMenu'].forEach(k => $(k).hidden = k !== id); }
 function setPlayChrome(on) { $('topbar').hidden = !on; $('touch').hidden = !(on && isTouch); $('rotateHint').hidden = !(on && isTouch && innerHeight > innerWidth); }
 function updateTouchLabels() {
   $('abilLbl').textContent = POWER_SHORT[P.who];
@@ -2870,6 +2959,144 @@ $('btnContinue').onclick = () => { audioUnlock(); continueGame(); };
 $('btnHow').onclick = () => { howFrom = 'titleMenu'; showOnly('howMenu'); };
 $('btnHow2').onclick = () => { howFrom = 'pauseMenu'; showOnly('howMenu'); };
 $('btnHowBack').onclick = () => showOnly(howFrom);
+
+/* ---------- leaderboard & guestbook (a Cloudflare Worker: see cloudflare/SETUP.md) ---------- */
+const NAME_KEY = 'wedding-quest:name', PLAYER_KEY = 'wedding-quest:player';
+const online = () => !!CONFIG.apiBase;
+function fmtTime(sec) {
+  const s = Math.floor(sec), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`;
+}
+let PLAYER = null;
+function playerId() {                       // a random id per device, so the board keeps each player's best run
+  if (PLAYER) return PLAYER;
+  let id = ''; try { id = localStorage.getItem(PLAYER_KEY) || ''; } catch (e) {}
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) {
+    id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+    try { localStorage.setItem(PLAYER_KEY, id); } catch (e) {}
+  }
+  return PLAYER = id;
+}
+function savedName() { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } }
+function rememberName(n) { try { localStorage.setItem(NAME_KEY, n); } catch (e) {} }
+async function api(path, body) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const r = await fetch(CONFIG.apiBase.replace(/\/+$/, '') + path, body
+      ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal }
+      : { signal: ctl.signal });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j || j.ok === false) throw new Error((j && j.error) || `The server had a problem (${r.status}). Try again in a bit.`);
+    return j;
+  } catch (e) {
+    if (e.name === 'AbortError' || e instanceof TypeError) throw new Error('Couldn’t reach the server. Check your connection and try again.');
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function setStatus(id, text, kind) { const e = $(id); e.textContent = text; e.className = 'status' + (kind ? ' ' + kind : ''); }
+function loadFailed(box, msg, retry) {
+  const p = el('div', 'empty'); p.append(el('div', '', msg));
+  const b = el('button', 'mb', 'Try again'); b.type = 'button'; b.onclick = retry; p.append(b);
+  box.replaceChildren(p);
+}
+
+let boardFrom = 'titleMenu', bookFrom = 'titleMenu';
+async function openBoard(from) {
+  boardFrom = from; showOnly('boardMenu');
+  const box = $('boardBody'); box.replaceChildren(el('p', 'empty', 'Loading…'));
+  try { renderBoard(await api('/scores?player=' + encodeURIComponent(playerId()))); }
+  catch (e) { loadFailed(box, e.message, () => openBoard(from)); }
+}
+function renderBoard(d) {
+  const box = $('boardBody');
+  if (!d.scores.length) return box.replaceChildren(el('p', 'empty', 'No one has finished yet. Be the first!'));
+  const MEDAL = ['', '🥇', '🥈', '🥉'];
+  const row = (s, rank) => {
+    const tr = el('tr', s.mine ? 'me' : '');
+    tr.append(el('td', 'rk', MEDAL[rank] || String(rank)), el('td', 'nm', s.name + (s.mine ? ' (you)' : '')),
+              el('td', 'num', String(s.hearts)), el('td', 'num', String(s.birds)), el('td', 'num', fmtTime(s.time)));
+    return tr;
+  };
+  const table = el('table', 'board'), head = el('tr'), body = el('tbody');
+  [['#', 'rk'], ['Name', ''], ['♥', 'num'], ['Birds', 'num'], ['Time', 'num']].forEach(([h, c]) => head.append(el('th', c, h)));
+  head.children[2].title = 'Memories';
+  const thead = el('thead'); thead.append(head);
+  d.scores.forEach((s, i) => body.append(row(s, i + 1)));
+  if (d.you && d.you.rank > d.scores.length) {
+    const gap = el('tr', 'gap'), td = el('td', '', '⋯'); td.colSpan = 5; gap.append(td);
+    body.append(gap, row(Object.assign({}, d.you, { mine: true }), d.you.rank));
+  }
+  table.append(thead, body);
+  const wrap = el('div', 'board-wrap'); wrap.append(table);
+  box.replaceChildren(wrap, el('p', 'dim', `${d.players} ${d.players === 1 ? 'player has' : 'players have'} finished so far`));
+  const me = wrap.querySelector('tr.me'); if (me) me.scrollIntoView({ block: 'nearest' });
+}
+
+function openBook(from) {
+  bookFrom = from; showOnly('bookMenu');
+  if (!$('bookName').value) $('bookName').value = savedName();
+  setStatus('bookStatus', ''); updateBookCount(); loadBook();
+}
+async function loadBook() {
+  const list = $('bookList'); list.replaceChildren(el('p', 'empty', 'Loading notes…'));
+  try { renderBook((await api('/messages')).messages); }
+  catch (e) { loadFailed(list, e.message, loadBook); }
+}
+function renderBook(ms) {
+  if (!ms.length) return $('bookList').replaceChildren(el('p', 'empty', 'No notes yet. Write the first one!'));
+  const yr = new Date().getFullYear();
+  $('bookList').replaceChildren(...ms.map(m => {
+    const n = el('div', 'note'), who = el('div', 'who'), d = new Date(m.created);
+    who.append(el('b', '', m.name), el('span', '', d.toLocaleDateString([], { month: 'short', day: 'numeric', year: d.getFullYear() === yr ? undefined : 'numeric' })));
+    n.append(who, el('p', '', m.text));
+    return n;
+  }));
+}
+function updateBookCount() { $('bookCount').textContent = `${$('bookText').value.length} / 500`; }
+$('bookText').oninput = updateBookCount;
+$('bookForm').onsubmit = async e => {
+  e.preventDefault();
+  const name = $('bookName').value.trim(), text = $('bookText').value.trim();
+  if (!name) { setStatus('bookStatus', 'Please add your name.', 'err'); return $('bookName').focus(); }
+  if (!text) { setStatus('bookStatus', 'Please write a message.', 'err'); return $('bookText').focus(); }
+  $('btnPost').disabled = true; setStatus('bookStatus', 'Posting…');
+  try {
+    const r = await api('/messages', { name, text, website: $('bookHp').value });
+    rememberName(name); $('bookText').value = ''; updateBookCount(); blurMenus();
+    setStatus('bookStatus', r.status === 'pending' ? `Thank you! Your note will appear once ${CONFIG.title} approve it.` : 'Thank you! Your note is posted.', 'good');
+    if (r.status !== 'pending') loadBook();
+  } catch (err) { setStatus('bookStatus', err.message, 'err'); }
+  finally { $('btnPost').disabled = false; }
+};
+
+function openFinish() {
+  state.mode = 'finish'; showOnly('finishMenu');
+  $('finishStats').textContent = `${Object.keys(save.hearts).length} / ${HEART_TOTAL} memories · ${Object.keys(save.birds).length} / ${BIRDS.length} birds · ${fmtTime(save.time)}`;
+  $('finishForm').hidden = false; $('btnFinishBoard').hidden = true; $('btnSubmitScore').disabled = false;
+  setStatus('finishStatus', '');
+  if (!$('finishName').value) $('finishName').value = savedName();
+}
+$('finishForm').onsubmit = async e => {
+  e.preventDefault();
+  const name = $('finishName').value.trim();
+  if (!name) { setStatus('finishStatus', 'Please enter your name.', 'err'); return $('finishName').focus(); }
+  $('btnSubmitScore').disabled = true; setStatus('finishStatus', 'Saving…');
+  try {
+    const r = await api('/scores', { player: playerId(), name, hearts: Object.keys(save.hearts).length, birds: Object.keys(save.birds).length,
+                                     time: Math.round(save.time * 10) / 10, oops: save.oops });
+    rememberName(name); blurMenus();
+    $('finishForm').hidden = true; $('btnFinishBoard').hidden = false;
+    setStatus('finishStatus', r.you ? `You’re #${r.you.rank} of ${r.players}!` + (r.improved ? '' : ' Your earlier run was better, so it stays on the board.') : 'Saved!', 'good');
+  } catch (err) { setStatus('finishStatus', err.message, 'err'); $('btnSubmitScore').disabled = false; }
+};
+$('btnBoard').onclick = () => openBoard('titleMenu');
+$('btnBook').onclick = () => openBook('titleMenu');
+$('btnBoardBack').onclick = () => showOnly(boardFrom);
+$('btnBookBack').onclick = () => showOnly(bookFrom);
+$('btnFinishBoard').onclick = () => openBoard('finishMenu');
+$('btnFinishBook').onclick = () => openBook('finishMenu');
+$('btnFinishTitle').onclick = toTitle;
 $('btnSound').onclick = $('btnSound2').onclick = () => { audioUnlock(); setSound(!settings.sound); };
 function buildTitlePortraits() {
   const pr = $('portraits'), toon = settings.style === 'toon';
@@ -2917,7 +3144,8 @@ function tick() {
     case 'dialog': state.t++; updateDialog(); updateParticles(); updateCamera(); break;
     case 'map': state.t++; if (hit.map || hit.pause || hit.jump || hit.ok || hit.abil) state.mode = 'play'; break;
     case 'paused': state.t++; if (hit.pause) closePause(); break;
-    case 'ending': state.t++; state.endT++; if (state.endT > 560 && (hit.jump || hit.ok || hit.abil || hit.pause)) toTitle(); break;
+    case 'ending': state.t++; state.endT++; if (state.endT > 560 && (hit.jump || hit.ok || hit.abil || hit.pause)) { if (online()) openFinish(); else toTitle(); } break;
+    case 'finish': state.t++; state.endT++; break;
   }
 }
 function updateWorld() {
@@ -2944,14 +3172,14 @@ function render() {
   g.setTransform(1, 0, 0, 1, 0, 0);
   deferred.length = 0;
   if (state.mode === 'title' || !state.Z) drawTitleScene();
-  else if (state.mode === 'ending') drawEnding();
+  else if (endingMode()) drawEnding();
   else { drawWorld(); if (state.mode === 'map') { deferred.length = 0; drawMapPixels(); } else drawHudPixels(); }
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(buf, 0, 0, cv.width, cv.height);
   if (deferred.length) drawDeferred();
   updateDoorButton();
   if (state.fade) { const f = state.fade, a = f.t < f.dur ? f.t / f.dur : 1 - (f.t - f.dur) / f.dur; ctx.fillStyle = `rgba(10,6,14,${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, cv.width, cv.height); }
-  if (state.mode === 'ending') endingText();
+  if (endingMode()) endingText();
   else if (state.mode !== 'title' && state.Z) drawHudText();
 }
 let lastT = performance.now(), acc = 0;
@@ -2971,6 +3199,8 @@ function frame(now) {
   HEART_TOTAL = totalHearts();
   document.title = CONFIG.title.replace('&', '&') + ': A Love Quest';
   $('gameSub').textContent = CONFIG.subtitle;
+  $('bookSub').textContent = 'Leave a note for ' + CONFIG.title;
+  $('btnBoard').hidden = $('btnBook').hidden = !online();
   setSound(settings.sound);
   setStyle(settings.style);
   $('btnContinue').hidden = !loadSave();

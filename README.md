@@ -6,7 +6,7 @@ There are three phases of our life, each one a connected map:
 1. **College Park.** McKeldin Mall, Testudo, McKeldin Library and the Campus Drive
    underpass. Katherine joins at the top of the library.
 2. **Bethesda.** The Metro escalator, Bethesda Row, our apartment (BA is waiting at home)
-   and the Purple Line construction site (Mikey is at the shelter).
+   and the Purple Line construction site (Mikey is at the MSPCA).
 3. **The Birding Trail.** A forest, a marsh boardwalk and a dark hollow, ending at an
    overlook with the wedding arch. There are 12 birds to spot.
 
@@ -38,6 +38,16 @@ for BA and a flower collar for Mikey.
 
 Progress saves automatically in the browser. A full run takes about 15–25 minutes.
 
+## Leaderboard and guestbook
+
+The title screen has a **Leaderboard** (most memories and birds found, then fastest time) and a
+**Guestbook** where anyone can leave a note. Finishing the game offers to add you to the
+leaderboard. Both are stored by a small Cloudflare Worker. Its code and step-by-step dashboard
+setup are in [`cloudflare/`](cloudflare/SETUP.md). Until `CONFIG.apiBase` is filled in, both
+features stay hidden and the game works offline exactly as before.
+
+Moderate notes and runs at `<worker address>/admin`.
+
 ## Publishing (GitHub Pages)
 
 1. github.com → **New repository** → name it `wedding-quest`, **Public**, Create.
@@ -53,7 +63,8 @@ on the title screen tells you which build you're looking at.
 
 - **`CONFIG`** near the top of the first `<script>`: the title, subtitle, phase names,
   the ending line, and **`weddingDate`**. Fill that in (e.g. `'June 6, 2027'`) and it
-  shows on the ending screen.
+  shows on the ending screen. **`apiBase`** is the Worker address that turns on the
+  leaderboard and guestbook.
 - **Sign text:** the `signs: { ... }` blocks inside `ZONES`, one per zone.
 - **Bird facts:** the `BIRDS` list.
 - **Level layouts:** the `ZONES` maps. Each character is one 16-pixel tile, and the key
